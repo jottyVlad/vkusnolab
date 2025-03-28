@@ -23,7 +23,6 @@ class _CreateRecipePageState extends State<CreateRecipePage> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Заголовок
             SafeArea(
               child: Padding(
                 padding: EdgeInsets.only(left: 24, right: 24, bottom: 16, top: 0),
@@ -39,10 +38,8 @@ class _CreateRecipePageState extends State<CreateRecipePage> {
                 ),
               ),
             ),
-            // Stack для наложения фото и белого контейнера
             Stack(
               children: [
-                // Белый контейнер с контентом
                 Container(
                   margin: EdgeInsets.only(top: imageSize / 2 + 16),
                   decoration: BoxDecoration(
@@ -57,7 +54,6 @@ class _CreateRecipePageState extends State<CreateRecipePage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Название
                         Text(
                           'Название',
                           style: TextStyle(
@@ -79,7 +75,6 @@ class _CreateRecipePageState extends State<CreateRecipePage> {
                           ),
                         ),
                         SizedBox(height: 24),
-                        // Ингредиенты
                         Text(
                           'Ингредиенты',
                           style: TextStyle(
@@ -102,7 +97,6 @@ class _CreateRecipePageState extends State<CreateRecipePage> {
                           ),
                         ),
                         SizedBox(height: 24),
-                        // Рецепт
                         Text(
                           'Рецепт',
                           style: TextStyle(
@@ -128,7 +122,6 @@ class _CreateRecipePageState extends State<CreateRecipePage> {
                     ),
                   ),
                 ),
-                // Фото, позиционируемое поверх контейнера
                 Positioned(
                   top: 0,
                   left: (MediaQuery.of(context).size.width - imageSize) / 2,
@@ -174,7 +167,6 @@ class _CreateRecipePageState extends State<CreateRecipePage> {
           ],
         ),
       ),
-      // Нижняя навигация
       bottomNavigationBar: Container(
         color: Colors.white,
         child: Container(

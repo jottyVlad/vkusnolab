@@ -41,7 +41,6 @@ class _AssistantPageState extends State<AssistantPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Чат
             Expanded(
               child: ListView.builder(
                 padding: EdgeInsets.only(top: 10, bottom: 4, left: 16, right: 16),
@@ -75,7 +74,6 @@ class _AssistantPageState extends State<AssistantPage> {
                 },
               ),
             ),
-            // Поле ввода сообщения
             Container(
               padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -94,7 +92,7 @@ class _AssistantPageState extends State<AssistantPage> {
                   Expanded(
                     child: Container(
                       constraints: BoxConstraints(
-                        maxHeight: 120, // Максимальная высота поля ввода
+                        maxHeight: 120,
                       ),
                       child: TextField(
                         controller: _messageController,
@@ -132,13 +130,11 @@ class _AssistantPageState extends State<AssistantPage> {
                       onPressed: () {
                         if (_messageController.text.isNotEmpty) {
                           setState(() {
-                            // Удаляем пустые строки в конце сообщения
                             String processedText = _messageController.text.trimRight();
                             _messages.add({
                               'text': processedText,
                               'isUser': true,
                             });
-                            // Имитация ответа помощника
                             _messages.add({
                               'text': '...',
                               'isUser': false,

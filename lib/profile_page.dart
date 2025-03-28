@@ -55,7 +55,6 @@ class ProfilePage extends StatelessWidget {
           children: [
             Column(
               children: [
-                // Верхняя часть с аватаром и именем
                 SafeArea(
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
@@ -83,7 +82,6 @@ class ProfilePage extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Основной контент
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -128,7 +126,6 @@ class ProfilePage extends StatelessWidget {
                 ),
               ],
             ),
-            // Кнопка меню
             Positioned(
               right: 16,
               top: 40,
@@ -139,14 +136,12 @@ class ProfilePage extends StatelessWidget {
                   size: 30,
                 ),
                 onPressed: () {
-                  // Обработчик нажатия на кнопку меню
                 },
               ),
             ),
           ],
         ),
       ),
-      // Нижняя навигация
       bottomNavigationBar: Container(
         color: Colors.white,
         child: Container(

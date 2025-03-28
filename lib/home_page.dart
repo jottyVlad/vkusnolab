@@ -18,7 +18,6 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final TextEditingController _searchController = TextEditingController();
 
-  // Временная модель данных для рецепта
 
   // Временные данные для примера
   final List<Recipe> recipes = [
@@ -66,7 +65,6 @@ class _HomePageState extends State<HomePage> {
       title: 'Тушёная каошка\nс мясом и грибами',
       imageUrl: ''
     ),
-    // Добавьте остальные рецепты здесь
   ];
 
   @override
@@ -77,7 +75,6 @@ class _HomePageState extends State<HomePage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Верхняя часть с поиском
             Container(
               color: Color(0xFFF5CB58),
               padding: EdgeInsets.fromLTRB(22, 4, 22, 16),
@@ -96,7 +93,6 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             ),
-            // Белая часть с рецептами
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
@@ -198,7 +194,6 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-// Виджет карточки рецепта
 class RecipeCard extends StatelessWidget {
   final Recipe recipe;
 

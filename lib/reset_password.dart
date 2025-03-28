@@ -9,7 +9,6 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
   final TextEditingController _emailController = TextEditingController();
 
   void _resetPassword() async {
-    // TODO: Implement password reset logic
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Ссылка для восстановления отправлена на почту'))
     );
