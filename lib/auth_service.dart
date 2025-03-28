@@ -32,6 +32,33 @@ class AuthService {
     }
   }
 
+  Future<bool> registration(String username, String email, String password, String secondPassword) async {
+    if (password != secondPassword) {
+      print('Passwords do not match');
+      return false;
+    }
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/v1/users/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'username': username, 'email': email, 'password': password}),
+      );
+
+      if (response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('access', data['access']);
+        await prefs.setString('refresh', data['refresh']);
+        return true;
+      } else {
+        return false;
+      }
+    } catch (e) {
+      print('registration error: $e');
+      return false;
+    }
+  }
+
   Future<bool> refreshToken() async {
     final prefs = await SharedPreferences.getInstance();
     final refresh = prefs.getString('refresh');
