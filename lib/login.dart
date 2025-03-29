@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'auth_service.dart';
 import 'reset_password.dart';
 import 'home_page.dart';
+import 'redirected_page.dart';
+import 'registration.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -226,7 +228,12 @@ class _LoginPageState extends State<LoginPage> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text('Don\'t have an account?'),
-        TextButton(onPressed: () {}, child: Text('Sign up'))
+        TextButton(onPressed: () {Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) {
+              return RegistrationPage();
+            })
+        );}, child: Text('Sign up'))
       ],
     );
   }
