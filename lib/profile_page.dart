@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'home_page.dart';
 import 'create_recipe_page.dart';
 import 'assistant_page.dart';
+import 'product_list.dart';
+import 'edit_profile_page.dart';
 
 class ProfilePage extends StatelessWidget {
   ProfilePage({super.key});
@@ -75,7 +77,7 @@ class ProfilePage extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFFE95322),
+                            color:Color(0xFFE95322),
                           ),
                         ),
                       ],
@@ -94,7 +96,7 @@ class ProfilePage extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildInfoSection('Обо мне', 'алолывлаылваывлалвалывлаыдлоллдолдьллдлвлфылвфыльвлофывлфывлфлд'),
+                      _buildInfoSection('Обо мне', 'Люблю готовить и пробовать что-то новое!'),
                       SizedBox(height: 16),
                       Center(
                         child: Text(
@@ -102,7 +104,7 @@ class ProfilePage extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFFE95322),
+                            color:Color(0xFFE95322),
                           ),
                         ),
                       ),
@@ -136,6 +138,10 @@ class ProfilePage extends StatelessWidget {
                   size: 30,
                 ),
                 onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const EditProfilePage()),
+                  );
                 },
               ),
             ),
@@ -174,7 +180,11 @@ class ProfilePage extends StatelessWidget {
               ),
               IconButton(
                 icon: Icon(Icons.shopping_cart, color: Colors.white),
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (context) => ProductListScreen()),
+                  );
+                },
               ),
               IconButton(
                 icon: Icon(Icons.chat_bubble_outline, color: Colors.white),
