@@ -38,24 +38,15 @@ class WelcomePage extends StatelessWidget {
 
                 // --- Логотип/Изображение (Замените на свое изображение) ---
                 // Используем иконку книги как временный плейсхолдер
-                const Icon(
-                  Icons.menu_book, // Замените на Image.asset('assets/your_logo.png')
-                  size: 150,
-                  color: Colors.white70, // Белесая иконка
-                ),
+                // const Icon(
+                //   Image.asset("assets/Logo.png"), // Замените на Image.asset('assets/your_logo.png')
+                //   size: 150,
+                //   color: Colors.white70, // Белесая иконка
+                // ),
+                Image.asset("assets/Logo.png"),
                 const SizedBox(height: 20),
 
-                // --- Заголовок "ВКУСОЛАБ" ---
-                const Text(
-                  'ВКУСОЛАБ',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 36,
-                    fontWeight: FontWeight.bold,
-                    color: titleColor,
-                    letterSpacing: 2.0, // Небольшое разрежение букв
-                  ),
-                ),
+                
                 const SizedBox(height: 60), // Отступ перед кнопками
 
                 // --- Кнопка "Вход" ---
