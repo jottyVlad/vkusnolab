@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'home_page.dart';
 import 'assistant_page.dart';
 import 'profile_page.dart';
+import 'product_list.dart';
 
 class CreateRecipePage extends StatefulWidget {
   @override
@@ -15,7 +16,7 @@ class _CreateRecipePageState extends State<CreateRecipePage> {
 
   @override
   Widget build(BuildContext context) {
-    double imageSize = 230;
+    double imageSize = 215;
 
     return Scaffold(
       backgroundColor: Color(0xFFFFA071),
@@ -30,7 +31,7 @@ class _CreateRecipePageState extends State<CreateRecipePage> {
                   child: Text(
                     'Создание рецепта',
                     style: TextStyle(
-                      fontSize: 28,
+                      fontSize: 25,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
@@ -52,12 +53,12 @@ class _CreateRecipePageState extends State<CreateRecipePage> {
                   child: Padding(
                     padding: EdgeInsets.fromLTRB(24, imageSize / 2 + 16, 24, 16),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Text(
                           'Название',
                           style: TextStyle(
-                            fontSize: 24,
+                            fontSize: 21,
                             fontWeight: FontWeight.bold,
                             color: Color(0xFFE95322),
                           ),
@@ -78,7 +79,7 @@ class _CreateRecipePageState extends State<CreateRecipePage> {
                         Text(
                           'Ингредиенты',
                           style: TextStyle(
-                            fontSize: 24,
+                            fontSize: 21,
                             fontWeight: FontWeight.bold,
                             color: Color(0xFFE95322),
                           ),
@@ -100,7 +101,7 @@ class _CreateRecipePageState extends State<CreateRecipePage> {
                         Text(
                           'Рецепт',
                           style: TextStyle(
-                            fontSize: 24,
+                            fontSize: 21,
                             fontWeight: FontWeight.bold,
                             color: Color(0xFFE95322),
                           ),
@@ -118,6 +119,26 @@ class _CreateRecipePageState extends State<CreateRecipePage> {
                             ),
                           ),
                         ),
+                        const SizedBox(height: 40),
+
+                        ElevatedButton(
+                          onPressed: () {
+                            final title = _titleController.text;
+                            final ingredients = _ingredientsController.text;
+                            final recipeSteps = _recipeController.text;
+                            print('Save Recipe pressed: Title=$title');
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFE95322),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                          child: const Text('Сохранить', style: TextStyle(color: Colors.white)),
+                        ),
+                        const SizedBox(height: 20),
                       ],
                     ),
                   ),
@@ -145,8 +166,8 @@ class _CreateRecipePageState extends State<CreateRecipePage> {
                           right: -25,
                           bottom: -20,
                           child: Container(
-                            width: 55,
-                            height: 55,
+                            width: 50,
+                            height: 50,
                             decoration: BoxDecoration(
                               color: Color(0xFFE95322),
                               borderRadius: BorderRadius.circular(10),
@@ -154,7 +175,7 @@ class _CreateRecipePageState extends State<CreateRecipePage> {
                             child: Icon(
                               Icons.add,
                               color: Colors.black,
-                              size: 24,
+                              size: 23,
                             ),
                           ),
                         ),
@@ -195,7 +216,11 @@ class _CreateRecipePageState extends State<CreateRecipePage> {
               ),
               IconButton(
                 icon: Icon(Icons.shopping_cart, color: Colors.white),
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (context) => ProductListScreen()),
+                  );
+                },
               ),
               IconButton(
                 icon: Icon(Icons.chat_bubble_outline, color: Colors.white),

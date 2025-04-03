@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'assistant_page.dart';
 import 'create_recipe_page.dart';
 import 'profile_page.dart';
+import 'product_list.dart';
+import 'recipe_details_page.dart';
 
 class Recipe {
     final String title;
@@ -22,7 +24,7 @@ class _HomePageState extends State<HomePage> {
   // Временные данные для примера
   final List<Recipe> recipes = [
     Recipe(
-      title: '1Капкейкис творожным кремом',
+      title: 'Капкейки с творожным кремом',
       imageUrl: ''
     ),
     Recipe(
@@ -30,39 +32,39 @@ class _HomePageState extends State<HomePage> {
       imageUrl: ''
     ),
     Recipe(
-      title: 'Тушёнака с мясом и грибамипавпвпвапвпавпвпа',
+      title: 'Тушёная картошка с мясом и грибами',
       imageUrl: ''
     ),
     Recipe(
-      title: 'Тёная картошка\nс мясом и грибами\nff',
+      title: 'Тушёная картошка с мясом и грибами',
       imageUrl: ''
     ),
     Recipe(
-      title: 'Тушёнкартошка\nс мясом и грибами',
+      title: 'Тушёная картошка с мясом и грибами',
       imageUrl: ''
     ),
     Recipe(
-      title: 'Тушёная каошка\nс мясом и грибами',
+      title: 'Тушёная картошка с мясом и грибами',
       imageUrl: ''
     ),
     Recipe(
-      title: 'Тушёная картоа\nс мясом и грибами',
+      title: 'Тушёная картошка с мясом и грибами',
       imageUrl: ''
     ),
     Recipe(
-      title: 'Тушёная картошка\nс мям и грибами',
+      title: 'Тушёная картошка с мясом и грибами',
       imageUrl: ''
     ),
     Recipe(
-      title: 'Тушёная картошка\nс мясо грибами',
+      title: 'Тушёная картошка с мясом и грибами',
       imageUrl: ''
     ),
     Recipe(
-      title: 'Тушёная картошка\nс мясом и грми',
+      title: 'Тушёная картошка с мясом и грибами',
       imageUrl: ''
     ),
     Recipe(
-      title: 'Тушёная каошка\nс мясом и грибами',
+      title: 'Тушёная картошка с мясом и грибами',
       imageUrl: ''
     ),
   ];
@@ -111,7 +113,7 @@ class _HomePageState extends State<HomePage> {
                         child: Text(
                           'Рецепты',
                           style: TextStyle(
-                            fontSize: 24,
+                            fontSize: 26,
                             fontWeight: FontWeight.bold,
                             color: Color(0xFFEC9706),
                           ),
@@ -168,7 +170,11 @@ class _HomePageState extends State<HomePage> {
               ),
               IconButton(
                 icon: Icon(Icons.shopping_cart, color: Colors.white),
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (context) => ProductListScreen()),
+                  );
+                },
               ),
               IconButton(
                 icon: Icon(Icons.chat_bubble_outline, color: Colors.white),
@@ -201,49 +207,59 @@ class RecipeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Color(0xFFF3E9B5),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            flex: 2,
-            child: ClipRRect(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-              child: Image.network(
-                recipe.imageUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: Colors.grey[300],
-                    child: Icon(Icons.restaurant, size: 50, color: Colors.grey),
-                  );
-                },
-              ),
-            ),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => RecipeDetailsPage(recipe: recipe),
           ),
-          Expanded(
-            flex: 1,
-            child: Container(
-              width: double.infinity,
-              alignment: Alignment.center,
-              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              child: Text(
-                recipe.title,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Color(0xFFF3E9B5),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              flex: 2,
+              child: ClipRRect(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+                child: Image.network(
+                  recipe.imageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: Colors.grey[300],
+                      child: Icon(Icons.restaurant, size: 50, color: Colors.grey),
+                    );
+                  },
                 ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
               ),
             ),
-          ),
-        ],
+            Expanded(
+              flex: 1,
+              child: Container(
+                width: double.infinity,
+                alignment: Alignment.center,
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Text(
+                  recipe.title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

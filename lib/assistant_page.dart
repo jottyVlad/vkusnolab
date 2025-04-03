@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'home_page.dart';
 import 'create_recipe_page.dart';
 import 'profile_page.dart';
+import 'product_list.dart';
 
 class AssistantPage extends StatefulWidget {
   @override
@@ -20,6 +21,7 @@ class _AssistantPageState extends State<AssistantPage> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 1,
+        automaticallyImplyLeading: false,
         title: Row(
           children: [
             CircleAvatar(
@@ -183,7 +185,11 @@ class _AssistantPageState extends State<AssistantPage> {
               ),
               IconButton(
                 icon: Icon(Icons.shopping_cart, color: Colors.white),
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (context) => ProductListScreen()),
+                  );
+                },
               ),
               IconButton(
                 icon: Icon(Icons.chat_bubble_outline, color: Colors.white),
