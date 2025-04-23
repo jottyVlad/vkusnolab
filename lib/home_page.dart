@@ -4,6 +4,8 @@ import 'create_recipe_page.dart';
 import 'profile_page.dart';
 import 'product_list.dart';
 import 'recipe_details_page.dart';
+import 'services/search_history_service.dart';
+import 'auth_service.dart';
 
 class Recipe {
     final String title;
@@ -19,9 +21,13 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final TextEditingController _searchController = TextEditingController();
+  final SearchHistoryService _searchHistoryService = SearchHistoryService();
+  final FocusNode _searchFocusNode = FocusNode();
 
+  List<SearchHistory> _searchHistorySuggestions = [];
+  bool _isLoadingHistory = false;
+  String? _historyError;
 
-  // Временные данные для примера
   final List<Recipe> recipes = [
     Recipe(
       title: 'Капкейки с творожным кремом',
@@ -70,7 +76,85 @@ class _HomePageState extends State<HomePage> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _searchFocusNode.addListener(() {
+      if (mounted) {
+        setState(() {});
+      }
+      if (_searchFocusNode.hasFocus && _searchHistorySuggestions.isEmpty && !_isLoadingHistory) {
+        _loadSearchHistory();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadSearchHistory() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoadingHistory = true;
+      _historyError = null;
+    });
+
+    try {
+      final history = await _searchHistoryService.getSearchHistory();
+      if (!mounted) return;
+      setState(() {
+        _searchHistorySuggestions = history;
+      });
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _historyError = e.message;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка доступа к истории: ${e.message}'), backgroundColor: Colors.orange)
+        );
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _historyError = 'Не удалось загрузить историю поиска.';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка загрузки истории поиска'), backgroundColor: Colors.red)
+        );
+      });
+       print("History loading error: $e");
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingHistory = false;
+      });
+    }
+  }
+
+  Future<void> _saveSearchQuery(String query) async {
+    if (query.isEmpty) return;
+    try {
+      await _searchHistoryService.saveSearchQuery(query);
+      _loadSearchHistory(); 
+    } catch (e) {
+      print("Failed to save search query '$query': $e");
+    }
+  }
+
+  void _performSearch(String query) {
+    final trimmedQuery = query.trim();
+    print("Performing search for: $trimmedQuery");
+    _saveSearchQuery(trimmedQuery);
+    _searchFocusNode.unfocus(); 
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final bool shouldShowHistoryOverlay = _searchFocusNode.hasFocus && 
+                                          (_isLoadingHistory || _historyError != null || _searchHistorySuggestions.isNotEmpty);
+
     return Scaffold(
       backgroundColor: Color(0xFFF5CB58),
       resizeToAvoidBottomInset: true,
@@ -82,6 +166,7 @@ class _HomePageState extends State<HomePage> {
               padding: EdgeInsets.fromLTRB(22, 4, 22, 16),
               child: TextField(
                 controller: _searchController,
+                focusNode: _searchFocusNode,
                 decoration: InputDecoration(
                   hintText: 'Поиск рецептов, пользователей',
                   prefixIcon: Icon(Icons.search, color: Colors.grey),
@@ -93,50 +178,75 @@ class _HomePageState extends State<HomePage> {
                   ),
                   contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 ),
+                textInputAction: TextInputAction.search,
+                onSubmitted: (query) {
+                  _performSearch(query);
+                },
+                onChanged: (value) {
+                  setState(() {}); 
+                 },
               ),
             ),
             Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(30),
-                    topRight: Radius.circular(30),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: EdgeInsets.all(10),
-                      child: Center(
-                        child: Text(
-                          'Рецепты',
-                          style: TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFFEC9706),
+              child: Stack(
+                children: [
+                  Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(30),
+                        topRight: Radius.circular(30),
+                      ),
+                    ),
+                    margin: EdgeInsets.only(top: 1), 
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.all(10),
+                          child: Center(
+                            child: Text(
+                              'Рецепты',
+                              style: TextStyle(
+                                fontSize: 26,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFFEC9706),
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                    Expanded(
-                      child: GridView.builder(
-                        padding: EdgeInsets.only(left: 24, right: 24, bottom: 16, top: 4),
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                          childAspectRatio: 0.85,
+                        Expanded(
+                          child: GridView.builder(
+                            padding: EdgeInsets.only(left: 24, right: 24, bottom: 16, top: 4),
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 16,
+                              mainAxisSpacing: 16,
+                              childAspectRatio: 0.85,
+                            ),
+                            itemCount: recipes.length,
+                            itemBuilder: (context, index) {
+                              return RecipeCard(recipe: recipes[index]);
+                            },
+                          ),
                         ),
-                        itemCount: recipes.length,
-                        itemBuilder: (context, index) {
-                          return RecipeCard(recipe: recipes[index]);
-                        },
+                      ],
+                    ),
+                  ),
+                  if (shouldShowHistoryOverlay) 
+                    Positioned(
+                      top: 0,
+                      left: 22,
+                      right: 22,
+                      child: Material(
+                        elevation: 4.0,
+                        borderRadius: BorderRadius.circular(10),
+                        color: Colors.white,
+                        child: _buildSearchHistoryList(),
                       ),
                     ),
-                  ],
-                ),
+                ],
               ),
             ),
           ],
@@ -195,6 +305,54 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSearchHistoryList() {
+    if (_isLoadingHistory) {
+      return Container(
+          padding: EdgeInsets.all(16),
+          height: 100,
+          child: Center(child: CircularProgressIndicator())
+      );
+    }
+    if (_historyError != null) {
+      return Container(
+          padding: EdgeInsets.all(16),
+          height: 100,
+          child: Center(child: Text(_historyError!, style: TextStyle(color: Colors.red)))
+      );
+    }
+    if (_searchHistorySuggestions.isEmpty) {
+      return Container(
+          padding: EdgeInsets.all(16),
+          height: 60,
+          child: Center(child: Text('История поиска пуста.', style: TextStyle(color: Colors.grey)))
+      );
+    }
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: 250,
+      ),
+      child: ListView.builder(
+        padding: EdgeInsets.zero,
+        shrinkWrap: true,
+        itemCount: _searchHistorySuggestions.length,
+        itemBuilder: (context, index) {
+          final historyItem = _searchHistorySuggestions[index];
+          return ListTile(
+            leading: Icon(Icons.history, color: Colors.grey),
+            title: Text(historyItem.text),
+            onTap: () {
+              _searchController.text = historyItem.text;
+              _searchController.selection = TextSelection.fromPosition(
+                  TextPosition(offset: _searchController.text.length));
+              _performSearch(historyItem.text);
+            },
+          );
+        },
       ),
     );
   }

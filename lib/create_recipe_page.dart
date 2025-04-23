@@ -119,7 +119,7 @@ class _CreateRecipePageState extends State<CreateRecipePage> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 40),
+                        const SizedBox(height: 28),
 
                         ElevatedButton(
                           onPressed: () {
@@ -138,7 +138,7 @@ class _CreateRecipePageState extends State<CreateRecipePage> {
                           ),
                           child: const Text('Сохранить', style: TextStyle(color: Colors.white)),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 4),
                       ],
                     ),
                   ),
