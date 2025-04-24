@@ -73,6 +73,18 @@ class _HomePageState extends State<HomePage> {
       title: 'Тушёная картошка с мясом и грибами',
       imageUrl: ''
     ),
+    Recipe(
+      title: 'www',
+      imageUrl: ''
+    ),
+    Recipe(
+      title: 'ww',
+      imageUrl: ''
+    ),
+    Recipe(
+      title: 'qq',
+      imageUrl: ''
+    ),
   ];
 
   @override
