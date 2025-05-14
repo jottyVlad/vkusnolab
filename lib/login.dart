@@ -15,13 +15,23 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _passwordController = TextEditingController();
   final AuthService _authService = AuthService();
 
-  void _login() async {
-    bool success = await _authService.login(
-      _usernameController.text,
-      _passwordController.text
-    );
+  bool _isLoading = false;
 
-    if (success) {
+  void _login() async {
+    if (_isLoading) return;
+    setState(() {
+      _isLoading = true;
+    });
+
+    ScaffoldMessenger.of(context).removeCurrentSnackBar();
+
+    try {
+      await _authService.login(
+        _usernameController.text,
+        _passwordController.text
+      );
+
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Вход выполнен успешно!'))
       );
@@ -29,10 +39,23 @@ class _LoginPageState extends State<LoginPage> {
         context, 
         MaterialPageRoute(builder: (context) => HomePage())
       );
-    } else {
+
+    } on AuthException catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Неверный логин или пароль'))
+        SnackBar(content: Text(e.message), backgroundColor: Colors.red)
       );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Произошла неизвестная ошибка: $e'), backgroundColor: Colors.red)
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -124,7 +147,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       SizedBox(height: 32),
                       ElevatedButton(
-                        onPressed: _login,
+                        onPressed: _isLoading ? null : _login,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Color(0xFFE95322),
                           padding: EdgeInsets.symmetric(vertical: 16),
@@ -132,13 +155,19 @@ class _LoginPageState extends State<LoginPage> {
                             borderRadius: BorderRadius.circular(30),
                           ),
                         ),
-                        child: Text(
-                          'Войти',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.white,
-                          ),
-                        ),
+                        child: _isLoading 
+                            ? SizedBox(
+                                width: 24, 
+                                height: 24, 
+                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3)
+                              )
+                            : Text(
+                                'Войти',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.white,
+                                ),
+                              ),
                       ),
                       SizedBox(height: 16),
                       TextButton(

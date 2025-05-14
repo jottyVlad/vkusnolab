@@ -4,49 +4,56 @@ import 'create_recipe_page.dart';
 import 'assistant_page.dart';
 import 'product_list.dart';
 import 'edit_profile_page.dart';
+import 'services/recipe_service.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   ProfilePage({super.key});
 
-  // Временные данные для примера
-  final List<Recipe> recipes = [
-    Recipe(
-      title: 'Капкейки с творожным кремом',
-      imageUrl: ''
-    ),
-    Recipe(
-      title: 'Тушёная картошка с мясом и грибами',
-      imageUrl: ''
-    ),
-    Recipe(
-      title: 'Тушёная картошка с мясом и грибами',
-      imageUrl: ''
-    ),
-    Recipe(
-      title: 'Тушёная картошка с мясом и грибами',
-      imageUrl: ''
-    ),
-    Recipe(
-      title: 'Тушёная картошка с мясом и грибами',
-      imageUrl: ''
-    ),
-    Recipe(
-      title: 'Тушёная картошка с мясом и грибами',
-      imageUrl: ''
-    ),
-    Recipe(
-      title: 'Тушёная картошка с мясом и грибами',
-      imageUrl: ''
-    ),
-    Recipe(
-      title: 'Тушёная картошка с мясом и грибами',
-      imageUrl: ''
-    ),
-    Recipe(
-      title: 'Тушёная картошка с мясом и грибами',
-      imageUrl: ''
-    )
-  ];
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  final RecipeService _recipeService = RecipeService();
+  List<Recipe> _userRecipes = [];
+  bool _isLoading = true;
+  String? _error;
+
+  final String _userName = 'Имя Пользователя';
+  final String _userBio = 'Люблю готовить и пробовать что-то новое!';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchRecipes();
+  }
+
+  Future<void> _fetchRecipes({bool loadMore = false}) async {
+    if (!mounted) return;
+    setState(() {
+      if (!loadMore) {
+        _isLoading = true;
+        _error = null;
+      }
+    });
+
+    try {
+      final paginatedResult = await _recipeService.getRecipes(page: 1);
+      if (!mounted) return;
+
+      setState(() {
+        _userRecipes = paginatedResult.recipes;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print("[ProfilePage] Error fetching recipes: $e");
+      if (!mounted) return;
+      setState(() {
+        _error = 'Ошибка загрузки рецептов: $e';
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -73,7 +80,7 @@ class ProfilePage extends StatelessWidget {
                         ),
                         SizedBox(height: 16),
                         Text(
-                          'Имя',
+                          _userName,
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
@@ -96,11 +103,11 @@ class ProfilePage extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildInfoSection('Обо мне', 'Люблю готовить и пробовать что-то новое!'),
+                      _buildInfoSection('Обо мне', _userBio),
                       SizedBox(height: 16),
                       Center(
                         child: Text(
-                          'Рецепты',
+                          'Мои Рецепты',
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
@@ -108,21 +115,7 @@ class ProfilePage extends StatelessWidget {
                           ),
                         ),
                       ),
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: NeverScrollableScrollPhysics(),
-                        padding: EdgeInsets.only(top: 12),
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                          childAspectRatio: 0.85,
-                        ),
-                        itemCount: recipes.length,
-                        itemBuilder: (context, index) {
-                          return RecipeCard(recipe: recipes[index]);
-                        },
-                      ),
+                      _buildRecipesGrid(),
                     ],
                   ),
                 ),
@@ -234,6 +227,52 @@ class ProfilePage extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildRecipesGrid() {
+    if (_isLoading) {
+      return const Center(child: Padding(padding: EdgeInsets.all(32.0), child: CircularProgressIndicator()));
+    }
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Text(
+            _error!,
+            style: const TextStyle(color: Colors.red, fontSize: 16),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+    if (_userRecipes.isEmpty) {
+       return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(20.0),
+          child: Text(
+            'У вас пока нет рецептов.',
+            style: TextStyle(color: Colors.grey, fontSize: 16),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.only(top: 12),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        childAspectRatio: 0.85,
+      ),
+      itemCount: _userRecipes.length,
+      itemBuilder: (context, index) {
+        return RecipeCard(recipe: _userRecipes[index]);
+      },
     );
   }
 } 

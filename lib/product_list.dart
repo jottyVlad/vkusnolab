@@ -1,23 +1,83 @@
 import 'package:flutter/material.dart';
-import 'home_page.dart'; // Импорт HomePage
-import 'create_recipe_page.dart'; // Импорт CreateRecipePage
-import 'assistant_page.dart'; // Импорт AssistantPage
-import 'profile_page.dart'; // Импорт ProfilePage
+import 'home_page.dart'; 
+import 'create_recipe_page.dart'; 
+import 'assistant_page.dart'; 
+import 'profile_page.dart';
+import 'services/product_list_service.dart'; 
 
-class ProductListScreen extends StatelessWidget {
+
+class ProductListScreen extends StatefulWidget {
   const ProductListScreen({super.key});
 
   @override
+  State<ProductListScreen> createState() => _ProductListScreenState();
+}
+
+class _ProductListScreenState extends State<ProductListScreen> {
+  final ProductListService _productListService = ProductListService();
+  final TextEditingController _textController = TextEditingController();
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
+
+
+  Future<void> _showProductDialog({int? index}) async {
+    final bool isEditing = index != null;
+    _textController.text = isEditing ? _productListService.productsNotifier.value[index] : '';
+
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: true, 
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(isEditing ? 'Редактировать продукт' : 'Добавить продукт'),
+          content: TextField(
+            controller: _textController,
+            autofocus: true,
+            decoration: const InputDecoration(hintText: 'Название продукта'),
+            onSubmitted: (_) => _submitDialog(index: index), 
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Отмена'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text(isEditing ? 'Сохранить' : 'Добавить'),
+              onPressed: () => _submitDialog(index: index),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
+  void _submitDialog({int? index}) {
+    final newProduct = _textController.text.trim();
+    if (newProduct.isNotEmpty) {
+      if (index != null) {
+        _productListService.editProduct(index, newProduct);
+      } else {
+        _productListService.addProduct(newProduct);
+      }
+    }
+    Navigator.of(context).pop(); 
+    _textController.clear(); 
+  }
+
+
+  void _deleteProduct(int index) {
+    _productListService.removeProduct(index);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Пример данных (замените на ваши реальные данные)
-    final List<String> products = [
-      '120 г сливочного масла',
-      '200 г творожного сыра',
-      '20 г сливок жирностью 33%',
-      '20 г сахарной пудры',
-      // Добавьте больше продуктов или пустых строк для дизайна
-      '', '', '', '', '', '', '',
-    ];
 
     const Color primaryColor = Color(0xFFF37A3A); // Оранжевый цвет
     const Color backgroundColor = Color(0xFFFFF8E1); // Светло-желтый фон
@@ -43,62 +103,95 @@ class ProductListScreen extends StatelessWidget {
       body: Padding(
         // Отступы для всего списка
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-        child: ListView.builder(
-          itemCount: products.length,
-          itemBuilder: (context, index) {
-            final product = products[index];
-            final isEmptyItem = product.isEmpty;
-
-            return Container(
-              margin: const EdgeInsets.symmetric(vertical: 6.0), // Отступы между элементами
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-              decoration: BoxDecoration(
-                color: itemBackgroundColor,
-                borderRadius: BorderRadius.circular(20.0), // Скругленные углы
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded( // Чтобы текст занимал доступное место
-                    child: Text(
-                      product,
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: isEmptyItem ? Colors.transparent : Colors.black87, // Скрываем текст для пустых
+        // Используем ValueListenableBuilder для подписки на изменения
+        child: ValueListenableBuilder<List<String>>(
+          valueListenable: _productListService.productsNotifier,
+          builder: (context, productList, child) {
+            // Строим ListView на основе данных из productList
+            return ListView.builder(
+              // Количество элементов = количество продуктов + 1 (для строки добавления)
+              itemCount: productList.length + 1,
+              itemBuilder: (context, index) {
+                // Если индекс соответствует реальному продукту
+                if (index < productList.length) {
+                  final product = productList[index];
+                  // Возвращаем виджет для существующего продукта
+                  return Container(
+                     margin: const EdgeInsets.symmetric(vertical: 6.0),
+                     padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                     decoration: BoxDecoration(
+                       color: itemBackgroundColor,
+                       borderRadius: BorderRadius.circular(20.0),
+                     ),
+                     constraints: const BoxConstraints(minHeight: 48.0),
+                     child: Row(
+                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                       children: [
+                         Expanded(
+                           child: Text(
+                             product,
+                             style: const TextStyle(
+                               fontSize: 18,
+                               color: Colors.black87,
+                             ),
+                             overflow: TextOverflow.ellipsis,
+                           ),
+                         ),
+                         Row(
+                           mainAxisSize: MainAxisSize.min,
+                           children: [
+                             IconButton(
+                               icon: const Icon(Icons.edit_outlined, color: Colors.black54),
+                               onPressed: () => _showProductDialog(index: index),
+                               constraints: const BoxConstraints(),
+                               padding: const EdgeInsets.only(left: 8.0, right: 4.0),
+                               iconSize: 20,
+                             ),
+                             IconButton(
+                               icon: const Icon(Icons.delete_outline, color: Colors.black54),
+                               onPressed: () => _deleteProduct(index),
+                               constraints: const BoxConstraints(),
+                               padding: const EdgeInsets.only(left: 4.0),
+                               iconSize: 20,
+                             ),
+                           ],
+                         ),
+                       ],
+                     ),
+                  );
+                } 
+                // Если это последний элемент (строка для добавления)
+                else {
+                  return GestureDetector(
+                    onTap: () => _showProductDialog(), // Вызываем добавление
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 6.0),
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                      decoration: BoxDecoration(
+                        // Слегка другой фон или стиль для кнопки добавления
+                        color: itemBackgroundColor.withOpacity(0.7), 
+                        borderRadius: BorderRadius.circular(20.0),
+                        border: Border.all(color: primaryColor.withOpacity(0.5), width: 1) // Рамка для наглядности
                       ),
-                      overflow: TextOverflow.ellipsis, // Обрезка текста, если не влезает
+                      constraints: const BoxConstraints(minHeight: 48.0),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.add, color: Colors.black54, size: 20),
+                          SizedBox(width: 8),
+                          Text(
+                            'Добавить продукт',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.black54,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  if (!isEmptyItem) // Показываем иконки только если элемент не пустой
-                    Row(
-                      mainAxisSize: MainAxisSize.min, // Уменьшаем размер Row до содержимого
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit_outlined, color: Colors.black54),
-                          onPressed: () {
-                            // TODO: Добавить логику редактирования
-                            print('Edit: $product');
-                          },
-                          constraints: const BoxConstraints(), // Убрать доп. паддинги IconButton
-                          padding: const EdgeInsets.only(left: 8.0, right: 4.0), // Небольшой отступ
-                          iconSize: 20,
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline, color: Colors.black54),
-                          onPressed: () {
-                            // TODO: Добавить логику удаления
-                            print('Delete: $product');
-                          },
-                          constraints: const BoxConstraints(), // Убрать доп. паддинги IconButton
-                          padding: const EdgeInsets.only(left: 4.0), // Небольшой отступ
-                          iconSize: 20,
-                        ),
-                      ],
-                    ),
-                  if (isEmptyItem) // Заглушка для пустых элементов, чтобы сохранить высоту
-                    const SizedBox(height: 24) // Примерная высота текста + иконок
-                ],
-              ),
+                  );
+                }
+              },
             );
           },
         ),
