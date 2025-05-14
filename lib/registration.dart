@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'auth_service.dart';
 import 'home_page.dart';
+import 'login.dart';
 
 class RegistrationPage extends StatefulWidget {
   @override
@@ -16,26 +17,49 @@ class _RegistrationPageState extends State<RegistrationPage>{
   final TextEditingController _second_passwordController = TextEditingController();
   final AuthService _authService = AuthService();
 
-  void _registration() async {
-    bool success = await _authService.registration(
-        _usernameController.text,
-        _emailController.text,
-        _passwordController.text,
-        _second_passwordController.text
-    );
+  bool _isLoading = false;
 
-    if (success) {
+  void _registration() async {
+    if (_isLoading) return;
+    setState(() {
+      _isLoading = true;
+    });
+
+    ScaffoldMessenger.of(context).removeCurrentSnackBar();
+
+    try {
+      await _authService.registration(
+          _usernameController.text,
+          _emailController.text,
+          _passwordController.text,
+          _second_passwordController.text
+      );
+
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Registration successful!'))
+          SnackBar(content: Text('Регистрация прошла успешно!'))
       );
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => HomePage()),
+        MaterialPageRoute(builder: (context) => LoginPage()),
       );
-    } else {
+
+    } on AuthException catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Passwords do not match or registration failed'))
+          SnackBar(content: Text(e.message), backgroundColor: Colors.red)
       );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Произошла неизвестная ошибка: $e'), backgroundColor: Colors.red)
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -110,7 +134,7 @@ class _RegistrationPageState extends State<RegistrationPage>{
                      const SizedBox(height: 32),
     
                      ElevatedButton(
-                       onPressed: _registration,
+                       onPressed: _isLoading ? null : _registration,
                        style: ElevatedButton.styleFrom(
                          backgroundColor: primaryButtonColor,
                          padding: const EdgeInsets.symmetric(vertical: 16),
@@ -118,13 +142,19 @@ class _RegistrationPageState extends State<RegistrationPage>{
                            borderRadius: BorderRadius.circular(30),
                          ),
                        ),
-                       child: const Text(
-                         'Зарегистрироваться',
-                         style: TextStyle(
-                           fontSize: 18,
-                           color: Colors.white,
-                         ),
-                       ),
+                       child: _isLoading
+                           ? SizedBox(
+                               width: 24, 
+                               height: 24, 
+                               child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3)
+                             )
+                           : const Text(
+                               'Зарегистрироваться',
+                               style: TextStyle(
+                                 fontSize: 18,
+                                 color: Colors.white,
+                               ),
+                             ),
                      ),
                      const SizedBox(height: 20),
                    ],
