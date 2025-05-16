@@ -5,7 +5,7 @@ import 'profile_page.dart';
 import 'product_list.dart';
 import 'recipe_details_page.dart';
 import 'services/search_history_service.dart';
-import 'auth_service.dart';
+import 'package:vkusnolab/auth_service.dart';
 import 'services/recipe_service.dart';
 import 'package:vkusnolab/models/user_profile.dart'; 
 import 'package:vkusnolab/models/recipe_ingredient.dart'; 
@@ -107,6 +107,7 @@ class _HomePageState extends State<HomePage> {
   final TextEditingController _searchController = TextEditingController();
   final SearchHistoryService _searchHistoryService = SearchHistoryService();
   final FocusNode _searchFocusNode = FocusNode();
+  final ScrollController _scrollController = ScrollController();
 
   List<SearchHistory> _searchHistorySuggestions = [];
   bool _isLoadingHistory = false;
@@ -114,7 +115,7 @@ class _HomePageState extends State<HomePage> {
 
   final RecipeService _recipeService = RecipeService();
   List<Recipe> _recipes = [];
-  bool _isLoadingRecipes = true;
+  bool _isLoadingRecipes = false;
   String? _recipesError;
 
   // --- Pagination State ---
@@ -122,6 +123,7 @@ class _HomePageState extends State<HomePage> {
   int _totalPages = 1; // Will be calculated after first fetch
   final int _pageSize = 10; // Items per page
   int _totalRecipeCount = 0; // Total items available from API
+  String? _currentSearchQuery; // Store current search query
 
   @override
   void initState() {
@@ -134,83 +136,94 @@ class _HomePageState extends State<HomePage> {
         _loadSearchHistory();
       }
     });
+
+    _scrollController.addListener(_scrollListener);
+
     // Fetch recipes for the initial page
-    _fetchRecipes(page: _currentPage);
+    _fetchRecipes(page: 1, searchQuery: null); // Initial fetch
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     _searchFocusNode.dispose();
+    _scrollController.removeListener(_scrollListener);
+    _scrollController.dispose();
     super.dispose();
   }
 
-  // --- Fetch Recipes Logic (Updated for Pagination) ---
-  Future<void> _fetchRecipes({required int page}) async {
+  void _scrollListener() {
+    if (_scrollController.position.extentAfter < 300 &&
+        !_isLoadingRecipes &&
+        _currentPage < _totalPages) {
+      print("[HomePage] Scroll listener triggered: Reached near bottom, loading next page.");
+      _fetchRecipes(page: _currentPage + 1, searchQuery: _currentSearchQuery);
+    }
+  }
+
+  // --- Fetch Recipes Logic (Updated for Pagination and Search) ---
+  Future<void> _fetchRecipes({required int page, String? searchQuery}) async {
+    if (_isLoadingRecipes && page != 1) return;
     if (!mounted) return;
-    // Reset error before fetching
-    // Keep existing recipes visible while loading next page?
-    // Or clear them: _recipes = []; 
+
+    final isNewSearch = searchQuery != _currentSearchQuery;
+    final targetPage = (isNewSearch || (searchQuery == null && _currentSearchQuery != null)) ? 1 : page;
+
     setState(() {
       _isLoadingRecipes = true;
-      _recipesError = null; 
+      _recipesError = null;
+      if (isNewSearch) {
+        _recipes = []; 
+        _currentSearchQuery = searchQuery; 
+        _currentPage = 1;
+      } else if (targetPage == 1 && _currentSearchQuery != null && searchQuery == null) {
+        _recipes = [];
+        _currentSearchQuery = null;
+        _currentPage = 1;
+      }
     });
-
-    print("[HomePage] Fetching recipes for page: $page");
+    
+    print("[HomePage] Fetching recipes for page: $targetPage, query: '${_currentSearchQuery ?? ''}'");
 
     try {
-      // Call service with page and pageSize
-      final paginatedResult = await _recipeService.getRecipes(page: page, pageSize: _pageSize);
+      final paginatedResult = await _recipeService.getRecipes(
+        page: targetPage, 
+        pageSize: _pageSize,
+        searchQuery: _currentSearchQuery, 
+      );
       if (!mounted) return;
 
-      // Calculate total pages
       final totalCount = paginatedResult.count;
-      final totalPages = (totalCount / _pageSize).ceil();
-      if (totalPages == 0 && totalCount > 0) {
-         // Handle case where ceil results in 0 pages for non-zero items (shouldn't happen with ceil)
-         _totalPages = 1;
-      } else {
-        _totalPages = totalPages;
-      }
+      final newTotalPages = (totalCount / _pageSize).ceil();
       
       setState(() {
-        _recipes = paginatedResult.recipes;
+        if (targetPage == 1) { 
+          _recipes = paginatedResult.recipes;
+        } else { 
+          _recipes.addAll(paginatedResult.recipes);
+        }
         _totalRecipeCount = totalCount;
-        _currentPage = page; // Update current page *after* successful fetch
+        _totalPages = (newTotalPages == 0 && totalCount > 0) ? 1 : newTotalPages;
+        _currentPage = targetPage;
         _isLoadingRecipes = false;
       });
-      print("[HomePage] Fetched page $page. Total pages: $_totalPages. Total recipes: $_totalRecipeCount");
+      print("[HomePage] Fetched page $targetPage for query '${_currentSearchQuery ?? ''}'. Total pages: $_totalPages. Total recipes: $_totalRecipeCount. Loaded recipes: ${paginatedResult.recipes.length}");
 
     } catch (e) {
-      print("[HomePage] Error fetching recipes for page $page: $e");
+      print("[HomePage] Error fetching recipes for page $targetPage, query '${_currentSearchQuery ?? ''}': $e");
       if (!mounted) return;
       setState(() {
         _isLoadingRecipes = false;
         _recipesError = 'Ошибка загрузки рецептов: $e';
-        // Keep existing recipes on error? Or clear them?
-        // _recipes = []; 
-        // _totalPages = 1; // Reset pagination on error?
-        // _currentPage = 1;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не удалось загрузить рецепты для страницы $page'), backgroundColor: Colors.red)
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Не удалось загрузить рецепты для страницы $targetPage'), backgroundColor: Colors.red)
+        );
+      }
     }
   }
   
-  // --- Pagination Navigation --- 
-  void _goToPreviousPage() {
-    if (_currentPage > 1) {
-      _fetchRecipes(page: _currentPage - 1);
-    }
-  }
-
-  void _goToNextPage() {
-    if (_currentPage < _totalPages) {
-      _fetchRecipes(page: _currentPage + 1);
-    }
-  }
-
   Future<void> _loadSearchHistory() async {
     if (!mounted) return;
     setState(() {
@@ -223,29 +236,31 @@ class _HomePageState extends State<HomePage> {
       if (!mounted) return;
       setState(() {
         _searchHistorySuggestions = history;
+        _isLoadingHistory = false;
       });
     } on AuthException catch (e) {
       if (!mounted) return;
       setState(() {
         _historyError = e.message;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка доступа к истории: ${e.message}'), backgroundColor: Colors.orange)
-        );
+        _isLoadingHistory = false;
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Ошибка доступа к истории: ${e.message}'), backgroundColor: Colors.orange)
+          );
+        }
       });
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _historyError = 'Не удалось загрузить историю поиска.';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка загрузки истории поиска'), backgroundColor: Colors.red)
-        );
+        _isLoadingHistory = false;
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Ошибка загрузки истории поиска'), backgroundColor: Colors.red)
+          );
+        }
       });
        print("History loading error: $e");
-    } finally {
-      if (!mounted) return;
-      setState(() {
-        _isLoadingHistory = false;
-      });
     }
   }
 
@@ -253,27 +268,35 @@ class _HomePageState extends State<HomePage> {
     if (query.isEmpty) return;
     try {
       await _searchHistoryService.saveSearchQuery(query);
-      _loadSearchHistory(); 
     } catch (e) {
       print("Failed to save search query '$query': $e");
+      if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Не удалось сохранить запрос "$query" в историю.'), backgroundColor: Colors.amber[800])
+        );
+      }
     }
   }
 
   void _performSearch(String query) {
     final trimmedQuery = query.trim();
-    print("Performing search for: $trimmedQuery");
-    _saveSearchQuery(trimmedQuery);
-    _searchFocusNode.unfocus(); 
+    
+    print("Performing search for: '$trimmedQuery'");
+    if (trimmedQuery.isNotEmpty) {
+        _saveSearchQuery(trimmedQuery);
+    }
+    _searchFocusNode.unfocus();
+    _fetchRecipes(page: 1, searchQuery: trimmedQuery.isNotEmpty ? trimmedQuery : null);
   }
 
   @override
   Widget build(BuildContext context) {
-    final bool shouldShowHistoryOverlay = _searchFocusNode.hasFocus && 
+    final bool shouldShowHistoryOverlay = _searchFocusNode.hasFocus &&
                                           (_isLoadingHistory || _historyError != null || _searchHistorySuggestions.isNotEmpty);
 
     return Scaffold(
       backgroundColor: Color(0xFFF5CB58),
-      resizeToAvoidBottomInset: true,
+      resizeToAvoidBottomInset: true, // Important for TextField with overlay
       body: SafeArea(
         child: Column(
           children: [
@@ -286,6 +309,16 @@ class _HomePageState extends State<HomePage> {
                 decoration: InputDecoration(
                   hintText: 'Поиск рецептов, пользователей',
                   prefixIcon: Icon(Icons.search, color: Colors.grey),
+                   suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(Icons.clear, color: Colors.grey),
+                        onPressed: () {
+                          _searchController.clear();
+                          _performSearch(''); 
+                          setState(() {});
+                        },
+                      )
+                    : null,
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
@@ -299,6 +332,8 @@ class _HomePageState extends State<HomePage> {
                   _performSearch(query);
                 },
                 onChanged: (value) {
+                  if (_searchFocusNode.hasFocus && value.isNotEmpty) {
+                  }
                   setState(() {}); 
                  },
               ),
@@ -306,27 +341,34 @@ class _HomePageState extends State<HomePage> {
             Expanded(
               child: Stack(
                 children: [
-                  Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(30),
-                        topRight: Radius.circular(30),
+                  GestureDetector( // Add GestureDetector to unfocus search on tap outside
+                    onTap: () {
+                      if (_searchFocusNode.hasFocus) {
+                        _searchFocusNode.unfocus();
+                      }
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(30),
+                          topRight: Radius.circular(30),
+                        ),
                       ),
+                      margin: EdgeInsets.only(top: 1),
+                      child: _buildRecipeContent(),
                     ),
-                    margin: EdgeInsets.only(top: 1), 
-                    child: _buildRecipeContent(),
                   ),
-                  if (shouldShowHistoryOverlay) 
+                  if (shouldShowHistoryOverlay)
                     Positioned(
-                      top: 0,
+                      top: 0, // Adjusted to be right below the search bar
                       left: 22,
                       right: 22,
-                      child: Material(
+                      child: Material( // Using Material for elevation and theming
                         elevation: 4.0,
-                        borderRadius: BorderRadius.circular(10),
-                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10), // Rounded corners
+                        color: Colors.white, // Background color for the list
                         child: _buildSearchHistoryList(),
                       ),
                     ),
@@ -352,7 +394,10 @@ class _HomePageState extends State<HomePage> {
             children: [
               IconButton(
                 icon: Icon(Icons.home, color: Colors.white),
-                onPressed: () {},
+                onPressed: () {
+                  // Already on home, or navigate to reset state if needed
+                  // Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => HomePage()));
+                },
               ),
               IconButton(
                 icon: Icon(Icons.edit, color: Colors.white),
@@ -394,27 +439,39 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildRecipeContent() {
-    if (_isLoadingRecipes) {
+    if (_isLoadingRecipes && _recipes.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
     if (_recipesError != null) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
-          child: Text(
-            _recipesError!,
-            style: const TextStyle(color: Colors.red, fontSize: 16),
-            textAlign: TextAlign.center,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                _recipesError!,
+                style: const TextStyle(color: Colors.red, fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () => _fetchRecipes(page: _currentPage, searchQuery: _currentSearchQuery),
+                child: Text("Попробовать снова"),
+              )
+            ],
           ),
         ),
       );
     }
-    if (_recipes.isEmpty) {
-       return const Center(
+    if (!_isLoadingRecipes && _recipes.isEmpty) {
+       return Center(
         child: Padding(
           padding: EdgeInsets.all(20.0),
           child: Text(
-            'Пока нет доступных рецептов.',
+             _currentSearchQuery != null && _currentSearchQuery!.isNotEmpty
+                ? 'По запросу "$_currentSearchQuery" ничего не найдено.'
+                : 'Пока нет доступных рецептов.',
             style: TextStyle(color: Colors.grey, fontSize: 16),
             textAlign: TextAlign.center,
           ),
@@ -422,28 +479,27 @@ class _HomePageState extends State<HomePage> {
       );
     }
 
-    // Wrap the Column content in a SingleChildScrollView
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 16), // Adjusted padding
-            child: Center(
-              child: Text(
-                'Рецепты',
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFFEC9706),
-                ),
+    return Column( // Changed from SingleChildScrollView to Column
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 16),
+          child: Center(
+            child: Text(
+              _currentSearchQuery != null && _currentSearchQuery!.isNotEmpty
+              ? 'Результаты поиска'
+              : 'Рецепты',
+              style: TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFEC9706),
               ),
             ),
           ),
-          // Remove Expanded, add shrinkWrap and physics
-          GridView.builder(
-            shrinkWrap: true, 
-            physics: NeverScrollableScrollPhysics(),
+        ),
+        Expanded( // Make GridView take available space
+          child: GridView.builder(
+            controller: _scrollController,
             padding: EdgeInsets.only(left: 24, right: 24, bottom: 16, top: 4),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
@@ -456,38 +512,13 @@ class _HomePageState extends State<HomePage> {
               return RecipeCard(recipe: _recipes[index]);
             },
           ),
-          // --- Pagination Controls --- 
-          if (_totalPages > 1) 
-            Padding(
-              // Reduced vertical padding
-              padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.arrow_back_ios, 
-                           color: _currentPage > 1 ? Colors.black : Colors.grey),
-                    onPressed: _currentPage > 1 ? _goToPreviousPage : null, 
-                    tooltip: 'Предыдущая страница',
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                    child: Text(
-                      'Страница $_currentPage / $_totalPages',
-                      style: TextStyle(fontSize: 16),
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.arrow_forward_ios, 
-                           color: _currentPage < _totalPages ? Colors.black : Colors.grey),
-                    onPressed: _currentPage < _totalPages ? _goToNextPage : null, 
-                    tooltip: 'Следующая страница',
-                  ),
-                ],
-              ),
-            )
-        ],
-      ),
+        ),
+        if (_isLoadingRecipes && _recipes.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          ),
+      ],
     );
   }
 
@@ -495,7 +526,7 @@ class _HomePageState extends State<HomePage> {
     if (_isLoadingHistory) {
       return Container(
           padding: EdgeInsets.all(16),
-          height: 100,
+          height: 100, // Give it some default height or it might collapse
           child: Center(child: CircularProgressIndicator())
       );
     }
@@ -516,11 +547,11 @@ class _HomePageState extends State<HomePage> {
 
     return ConstrainedBox(
       constraints: BoxConstraints(
-        maxHeight: 250,
+        maxHeight: 250, // Max height for the suggestions list
       ),
       child: ListView.builder(
-        padding: EdgeInsets.zero,
-        shrinkWrap: true,
+        padding: EdgeInsets.zero, // Remove any default padding
+        shrinkWrap: true, // Important for ConstrainedBox
         itemCount: _searchHistorySuggestions.length,
         itemBuilder: (context, index) {
           final historyItem = _searchHistorySuggestions[index];
@@ -549,7 +580,7 @@ class RecipeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     // Add a check for null or empty image URL
     final bool hasImage = recipe.image != null && recipe.image!.isNotEmpty;
-    print("Building RecipeCard for ID: ${recipe.id}, Title: ${recipe.title}, HasImage: $hasImage, ImageURL: ${recipe.image}"); // Add logging
+    // print("Building RecipeCard for ID: ${recipe.id}, Title: ${recipe.title}, HasImage: $hasImage, ImageURL: ${recipe.image}");
 
     return GestureDetector(
       onTap: () {
@@ -557,8 +588,8 @@ class RecipeCard extends StatelessWidget {
           context,
           MaterialPageRoute(
             builder: (context) => RecipeDetailsPage(
-              recipeId: recipe.id, 
-              initialTitle: recipe.title, 
+              recipeId: recipe.id,
+              initialTitle: recipe.title,
               initialImageUrl: recipe.image,
             ),
           ),
@@ -582,7 +613,7 @@ class RecipeCard extends StatelessWidget {
                       recipe.image!, // Safe to use ! here because hasImage is true
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
-                        print("Error loading image ${recipe.image}: $error");
+                        // print("Error loading image ${recipe.image}: $error");
                         return Container(
                           color: Colors.grey[300],
                           alignment: Alignment.center,
