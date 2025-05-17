@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-import 'auth_service.dart';
+import 'services/auth_service.dart';
 import 'home_page.dart';
 import 'login.dart';
 
@@ -41,7 +41,11 @@ class _RegistrationPageState extends State<RegistrationPage>{
       );
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => LoginPage()),
+        PageRouteBuilder(
+          pageBuilder: (context, animation1, animation2) => LoginPage(),
+          transitionDuration: Duration.zero,
+          reverseTransitionDuration: Duration.zero,
+        ),
       );
 
     } on AuthException catch (e) {

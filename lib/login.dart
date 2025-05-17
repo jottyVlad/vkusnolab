@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'auth_service.dart';
+import 'services/auth_service.dart';
 import 'reset_password.dart';
 import 'home_page.dart';
 import 'registration.dart';
@@ -35,9 +35,14 @@ class _LoginPageState extends State<LoginPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Вход выполнен успешно!'))
       );
-      Navigator.pushReplacement(
+      Navigator.pushAndRemoveUntil(
         context, 
-        MaterialPageRoute(builder: (context) => HomePage())
+        PageRouteBuilder(
+          pageBuilder: (context, animation1, animation2) => HomePage(),
+          transitionDuration: Duration.zero,
+          reverseTransitionDuration: Duration.zero,
+        ),
+        (Route<dynamic> route) => false,
       );
 
     } on AuthException catch (e) {
@@ -174,7 +179,11 @@ class _LoginPageState extends State<LoginPage> {
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => ResetPasswordPage()),
+                            PageRouteBuilder(
+                              pageBuilder: (context, animation1, animation2) => ResetPasswordPage(),
+                              transitionDuration: Duration.zero,
+                              reverseTransitionDuration: Duration.zero,
+                            ),
                           );
                         },
                         style: TextButton.styleFrom(
@@ -251,7 +260,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  _signup(context) { // TODO: рассмотреть использование
+  _signup(context) { 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:vkusnolab/auth_service.dart';
+import 'package:vkusnolab/services/auth_service.dart';
 import 'package:vkusnolab/home_page.dart';
 import 'welcome_page.dart';   
 
