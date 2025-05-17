@@ -52,10 +52,13 @@ class WelcomePage extends StatelessWidget {
                 // --- Кнопка "Вход" ---
                 ElevatedButton(
                   onPressed: () {
-                    // Переход на страницу входа
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => LoginPage()),
+                      PageRouteBuilder(
+                        pageBuilder: (context, animation1, animation2) => LoginPage(),
+                        transitionDuration: Duration.zero,
+                        reverseTransitionDuration: Duration.zero,
+                      ),
                     );
                   },
                   style: ElevatedButton.styleFrom(
@@ -80,10 +83,13 @@ class WelcomePage extends StatelessWidget {
                 // --- Кнопка "Регистрация" ---
                 ElevatedButton(
                   onPressed: () {
-                    // Переход на страницу регистрации
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => RegistrationPage()),
+                      PageRouteBuilder(
+                        pageBuilder: (context, animation1, animation2) => RegistrationPage(),
+                        transitionDuration: Duration.zero,
+                        reverseTransitionDuration: Duration.zero,
+                      ),
                     );
                   },
                    style: ElevatedButton.styleFrom(

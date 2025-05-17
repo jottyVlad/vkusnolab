@@ -156,26 +156,38 @@ class _ProfilePageState extends State<ProfilePage> {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               IconButton(
-                icon: Icon(Icons.home, color: Colors.white),
+                icon: Icon(Icons.home_outlined, color: Colors.white),
                 onPressed: () {
                   Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (context) => HomePage()),
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation1, animation2) => HomePage(),
+                      transitionDuration: Duration.zero,
+                      reverseTransitionDuration: Duration.zero,
+                    ),
                   );
                 },
               ),
               IconButton(
-                icon: Icon(Icons.edit, color: Colors.white),
+                icon: Icon(Icons.edit_outlined, color: Colors.white),
                 onPressed: () {
                   Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (context) => CreateRecipePage()),
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation1, animation2) => CreateRecipePage(),
+                      transitionDuration: Duration.zero,
+                      reverseTransitionDuration: Duration.zero,
+                    ),
                   );
                 },
               ),
               IconButton(
-                icon: Icon(Icons.shopping_cart, color: Colors.white),
+                icon: Icon(Icons.shopping_cart_outlined, color: Colors.white),
                 onPressed: () {
                   Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (context) => ProductListScreen()),
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation1, animation2) => ProductListScreen(),
+                      transitionDuration: Duration.zero,
+                      reverseTransitionDuration: Duration.zero,
+                    ),
                   );
                 },
               ),
@@ -183,12 +195,16 @@ class _ProfilePageState extends State<ProfilePage> {
                 icon: Icon(Icons.chat_bubble_outline, color: Colors.white),
                 onPressed: () {
                   Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (context) => AssistantPage()),
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation1, animation2) => AssistantPage(),
+                      transitionDuration: Duration.zero,
+                      reverseTransitionDuration: Duration.zero,
+                    ),
                   );
                 },
               ),
               IconButton(
-                icon: Icon(Icons.person_outline, color: Colors.white),
+                icon: Icon(Icons.person, color: Colors.white),
                 onPressed: () {},
               ),
             ],

@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:vkusnolab/auth_service.dart';
+import 'package:vkusnolab/services/auth_service.dart';
 import 'package:vkusnolab/models/ingredient.dart'; // Assuming Ingredient model exists
 
 class IngredientService {

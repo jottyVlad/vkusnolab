@@ -5,7 +5,7 @@ import 'profile_page.dart';
 import 'product_list.dart';
 import 'recipe_details_page.dart';
 import 'services/search_history_service.dart';
-import 'package:vkusnolab/auth_service.dart';
+import 'package:vkusnolab/services/auth_service.dart';
 import 'services/recipe_service.dart';
 import 'package:vkusnolab/models/user_profile.dart'; 
 import 'package:vkusnolab/models/recipe_ingredient.dart'; 
@@ -41,9 +41,7 @@ class Recipe {
       required this.isPrivate,
     });
 
-    // Factory constructor to create a Recipe from JSON
     factory Recipe.fromJson(Map<String, dynamic> json) {
-      // Helper to safely parse DateTime
       DateTime? safeParseDateTime(String? dateString) {
           if (dateString == null) return null;
           try {
@@ -54,7 +52,6 @@ class Recipe {
           }
       }
 
-      // Parse ingredients list
       List<RecipeIngredient> parsedIngredients = [];
       if (json['ingredients'] != null && json['ingredients'] is List) {
         try {
@@ -63,7 +60,6 @@ class Recipe {
               .toList();
         } catch (e) {
           print("Error parsing ingredients for recipe ID ${json['id']}: $e");
-          // Keep parsedIngredients as empty list on error
         }
       } else {
           print("Warning: 'ingredients' field is null or not a list for recipe ID ${json['id']}");
@@ -71,9 +67,7 @@ class Recipe {
 
       return Recipe(
         id: json['id'] as int? ?? 0,
-        // Use the parsed ingredients list
         ingredients: parsedIngredients,
-        // Safely parse author - check if null and if it's a map
         author: json['author'] != null && json['author'] is Map<String, dynamic>
             ? UserProfile.fromJson(json['author'] as Map<String, dynamic>)
             : null,
@@ -85,17 +79,10 @@ class Recipe {
         servings: json['servings'] as int? ?? 0,
         createdAt: safeParseDateTime(json['created_at'] as String?),
         updatedAt: safeParseDateTime(json['updated_at'] as String?),
-        isActive: json['is_active'] as bool? ?? true, // Default value
-        isPrivate: json['is_private'] as bool? ?? false, // Default value
+        isActive: json['is_active'] as bool? ?? true, 
+        isPrivate: json['is_private'] as bool? ?? false,
       );
     }
-
-    // TODO: Add toJson method for POST/PUT/PATCH requests if needed
-    // Map<String, dynamic> toJson() => {
-    //   ...
-    //   'ingredients': ingredients.map((i) => i.toJson()).toList(),
-    //   ...
-    // };
 }
 
 class HomePage extends StatefulWidget {
@@ -118,12 +105,11 @@ class _HomePageState extends State<HomePage> {
   bool _isLoadingRecipes = false;
   String? _recipesError;
 
-  // --- Pagination State ---
   int _currentPage = 1;
-  int _totalPages = 1; // Will be calculated after first fetch
-  final int _pageSize = 10; // Items per page
-  int _totalRecipeCount = 0; // Total items available from API
-  String? _currentSearchQuery; // Store current search query
+  int _totalPages = 1; 
+  final int _pageSize = 10; 
+  int _totalRecipeCount = 0; 
+  String? _currentSearchQuery; 
 
   @override
   void initState() {
@@ -139,8 +125,7 @@ class _HomePageState extends State<HomePage> {
 
     _scrollController.addListener(_scrollListener);
 
-    // Fetch recipes for the initial page
-    _fetchRecipes(page: 1, searchQuery: null); // Initial fetch
+    _fetchRecipes(page: 1, searchQuery: null); 
   }
 
   @override
@@ -161,7 +146,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // --- Fetch Recipes Logic (Updated for Pagination and Search) ---
   Future<void> _fetchRecipes({required int page, String? searchQuery}) async {
     if (_isLoadingRecipes && page != 1) return;
     if (!mounted) return;
@@ -291,12 +275,11 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final bool shouldShowHistoryOverlay = _searchFocusNode.hasFocus &&
-                                          (_isLoadingHistory || _historyError != null || _searchHistorySuggestions.isNotEmpty);
+    final bool shouldShowHistoryOverlay = _searchFocusNode.hasFocus && (_isLoadingHistory || _historyError != null || _searchHistorySuggestions.isNotEmpty);
 
     return Scaffold(
       backgroundColor: Color(0xFFF5CB58),
-      resizeToAvoidBottomInset: true, // Important for TextField with overlay
+      resizeToAvoidBottomInset: true, 
       body: SafeArea(
         child: Column(
           children: [
@@ -341,7 +324,7 @@ class _HomePageState extends State<HomePage> {
             Expanded(
               child: Stack(
                 children: [
-                  GestureDetector( // Add GestureDetector to unfocus search on tap outside
+                  GestureDetector( 
                     onTap: () {
                       if (_searchFocusNode.hasFocus) {
                         _searchFocusNode.unfocus();
@@ -362,13 +345,13 @@ class _HomePageState extends State<HomePage> {
                   ),
                   if (shouldShowHistoryOverlay)
                     Positioned(
-                      top: 0, // Adjusted to be right below the search bar
+                      top: 0, 
                       left: 22,
                       right: 22,
-                      child: Material( // Using Material for elevation and theming
+                      child: Material( 
                         elevation: 4.0,
-                        borderRadius: BorderRadius.circular(10), // Rounded corners
-                        color: Colors.white, // Background color for the list
+                        borderRadius: BorderRadius.circular(10),
+                        color: Colors.white, 
                         child: _buildSearchHistoryList(),
                       ),
                     ),
@@ -395,23 +378,29 @@ class _HomePageState extends State<HomePage> {
               IconButton(
                 icon: Icon(Icons.home, color: Colors.white),
                 onPressed: () {
-                  // Already on home, or navigate to reset state if needed
-                  // Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => HomePage()));
                 },
               ),
               IconButton(
-                icon: Icon(Icons.edit, color: Colors.white),
+                icon: Icon(Icons.edit_outlined, color: Colors.white),
                 onPressed: () {
                   Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (context) => CreateRecipePage()),
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation1, animation2) => CreateRecipePage(),
+                      transitionDuration: Duration.zero,
+                      reverseTransitionDuration: Duration.zero,
+                    ),
                   );
                 },
               ),
               IconButton(
-                icon: Icon(Icons.shopping_cart, color: Colors.white),
+                icon: Icon(Icons.shopping_cart_outlined, color: Colors.white),
                 onPressed: () {
                   Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (context) => ProductListScreen()),
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation1, animation2) => ProductListScreen(),
+                      transitionDuration: Duration.zero,
+                      reverseTransitionDuration: Duration.zero,
+                    ),
                   );
                 },
               ),
@@ -419,7 +408,11 @@ class _HomePageState extends State<HomePage> {
                 icon: Icon(Icons.chat_bubble_outline, color: Colors.white),
                 onPressed: () {
                   Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (context) => AssistantPage()),
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation1, animation2) => AssistantPage(),
+                      transitionDuration: Duration.zero,
+                      reverseTransitionDuration: Duration.zero,
+                    ),
                   );
                 },
               ),
@@ -427,7 +420,11 @@ class _HomePageState extends State<HomePage> {
                 icon: Icon(Icons.person_outline, color: Colors.white),
                 onPressed: () {
                   Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (context) => ProfilePage()),
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation1, animation2) => ProfilePage(),
+                      transitionDuration: Duration.zero,
+                      reverseTransitionDuration: Duration.zero,
+                    ),
                   );
                 },
               ),
@@ -479,7 +476,7 @@ class _HomePageState extends State<HomePage> {
       );
     }
 
-    return Column( // Changed from SingleChildScrollView to Column
+    return Column( 
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
@@ -497,7 +494,7 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
         ),
-        Expanded( // Make GridView take available space
+        Expanded( 
           child: GridView.builder(
             controller: _scrollController,
             padding: EdgeInsets.only(left: 24, right: 24, bottom: 16, top: 4),
@@ -526,7 +523,7 @@ class _HomePageState extends State<HomePage> {
     if (_isLoadingHistory) {
       return Container(
           padding: EdgeInsets.all(16),
-          height: 100, // Give it some default height or it might collapse
+          height: 100,
           child: Center(child: CircularProgressIndicator())
       );
     }
@@ -547,11 +544,11 @@ class _HomePageState extends State<HomePage> {
 
     return ConstrainedBox(
       constraints: BoxConstraints(
-        maxHeight: 250, // Max height for the suggestions list
+        maxHeight: 250,
       ),
       child: ListView.builder(
-        padding: EdgeInsets.zero, // Remove any default padding
-        shrinkWrap: true, // Important for ConstrainedBox
+        padding: EdgeInsets.zero,
+        shrinkWrap: true, 
         itemCount: _searchHistorySuggestions.length,
         itemBuilder: (context, index) {
           final historyItem = _searchHistorySuggestions[index];
@@ -578,9 +575,7 @@ class RecipeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Add a check for null or empty image URL
     final bool hasImage = recipe.image != null && recipe.image!.isNotEmpty;
-    // print("Building RecipeCard for ID: ${recipe.id}, Title: ${recipe.title}, HasImage: $hasImage, ImageURL: ${recipe.image}");
 
     return GestureDetector(
       onTap: () {
@@ -607,13 +602,11 @@ class RecipeCard extends StatelessWidget {
               flex: 2,
               child: ClipRRect(
                 borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-                // Conditionally display Image.network or a placeholder
                 child: hasImage
                   ? Image.network(
-                      recipe.image!, // Safe to use ! here because hasImage is true
+                      recipe.image!,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
-                        // print("Error loading image ${recipe.image}: $error");
                         return Container(
                           color: Colors.grey[300],
                           alignment: Alignment.center,
@@ -621,7 +614,7 @@ class RecipeCard extends StatelessWidget {
                         );
                       },
                       loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child; // Image loaded
+                        if (loadingProgress == null) return child; 
                         return Center(
                           child: CircularProgressIndicator(
                             value: loadingProgress.expectedTotalBytes != null
@@ -632,7 +625,7 @@ class RecipeCard extends StatelessWidget {
                         );
                       },
                     )
-                  : Container( // Placeholder when image is null or empty
+                  : Container(
                       color: Colors.grey[300],
                       alignment: Alignment.center,
                       child: Icon(Icons.restaurant_menu, size: 50, color: Colors.grey[600]),

@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:async'; 
 import 'dart:io'; 
 import 'package:http/http.dart' as http;
-import 'package:vkusnolab/auth_service.dart';
+import 'package:vkusnolab/services/auth_service.dart';
 import '../home_page.dart'; 
 import '../models/recipe_ingredient.dart'; 
 
@@ -57,7 +57,6 @@ class RecipeService {
                              .timeout(const Duration(seconds: 15));
       
       print("Get recipes response status: ${response.statusCode}");
-      // print("Get recipes response body: ${response.body}"); // Careful with large responses
 
       if (response.statusCode == 200) {
         final dynamic responseData = jsonDecode(utf8.decode(response.bodyBytes));
