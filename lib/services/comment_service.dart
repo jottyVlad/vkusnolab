@@ -26,7 +26,7 @@ class CommentService {
   Future<List<Comment>> getComments(int recipeId) async {
     final headers = await _getHeaders();
     final uri = Uri.parse('$_baseUrl/v1/recipe/comments/') 
-        .replace(queryParameters: {'recipe': recipeId.toString()});
+        .replace(queryParameters: {'recipe__id': recipeId.toString()});
 
     try {
       final response = await http.get(uri, headers: headers);

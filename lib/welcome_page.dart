@@ -80,7 +80,6 @@ class WelcomePage extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
 
-                // --- Кнопка "Регистрация" ---
                 ElevatedButton(
                   onPressed: () {
                     Navigator.push(
