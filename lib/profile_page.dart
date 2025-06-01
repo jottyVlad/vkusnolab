@@ -8,6 +8,9 @@ import 'services/recipe_service.dart';
 import 'services/auth_service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'services/profile_service.dart';
+import 'recipe_details_page.dart';
+import 'package:provider/provider.dart';
+import 'services/like_state_manager.dart';
 
 class ProfilePage extends StatefulWidget {
   ProfilePage({super.key});
@@ -35,6 +38,17 @@ class _ProfilePageState extends State<ProfilePage> {
   void initState() {
     super.initState();
     _initProfile();
+    context.read<LikeStateManager>().loadLikedRecipes();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Check if we're returning from a recipe details page
+    final result = ModalRoute.of(context)?.settings.arguments;
+    if (result == true) {
+      _fetchFavorites();
+    }
   }
 
   Future<void> _initProfile() async {
@@ -94,17 +108,20 @@ class _ProfilePageState extends State<ProfilePage> {
       _error = null;
     });
     try {
-      final likeService = LikeService();
-      final likedIds = await likeService.getLikedRecipeIds();
+      // First get all liked recipe IDs
+      final likedIds = await context.read<LikeStateManager>().loadLikedRecipes();
       List<Recipe> likedRecipes = [];
+      
+      // Then fetch full recipe details for each liked recipe
       for (final id in likedIds) {
         try {
           final recipe = await _recipeService.getRecipeById(id);
           likedRecipes.add(recipe);
         } catch (e) {
-          // Можно залогировать ошибку, если рецепт не найден
+          print('Error fetching recipe $id: $e');
         }
       }
+      
       setState(() {
         _favoriteRecipes = likedRecipes;
         _isLoading = false;
@@ -132,6 +149,9 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    // Listen to LikeStateManager changes
+    context.watch<LikeStateManager>();
+    
     return Scaffold(
       backgroundColor: Color(0xFFFFC6AE),
       body: SingleChildScrollView(
@@ -378,12 +398,12 @@ class _ProfilePageState extends State<ProfilePage> {
     }
     final recipes = _showFavorites ? _favoriteRecipes : _userRecipes;
     if (recipes.isEmpty) {
-       return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(20.0),
+          padding: const EdgeInsets.all(20.0),
           child: Text(
-            'У вас пока нет рецептов.',
-            style: TextStyle(color: Colors.grey, fontSize: 16),
+            _showFavorites ? 'У вас пока нет избранных рецептов.' : 'У вас пока нет рецептов.',
+            style: const TextStyle(color: Colors.grey, fontSize: 16),
             textAlign: TextAlign.center,
           ),
         ),
@@ -402,7 +422,30 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
       itemCount: recipes.length,
       itemBuilder: (context, index) {
-        return RecipeCard(recipe: recipes[index]);
+        final recipe = recipes[index];
+        return GestureDetector(
+          onTap: () async {
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => RecipeDetailsPage(
+                  recipeId: recipe.id,
+                  initialTitle: recipe.title,
+                  initialImageUrl: recipe.image,
+                ),
+              ),
+            );
+            if (result == true) {
+              await _fetchFavorites();
+            }
+          },
+          child: RecipeCard(
+            recipe: recipe,
+            onLikeStateChanged: () async {
+              await _fetchFavorites();
+            },
+          ),
+        );
       },
     );
   }

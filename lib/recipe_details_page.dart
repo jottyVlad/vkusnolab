@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart'; 
+import 'package:provider/provider.dart';
 import 'home_page.dart'; 
 import 'models/comment.dart'; 
 import 'services/comment_service.dart'; 
 import 'services/product_list_service.dart';
 import 'package:vkusnolab/models/recipe_ingredient.dart'; 
 import 'services/recipe_service.dart';
+import 'services/like_state_manager.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:flutter/services.dart';
 
 
 class RecipeDetailsPage extends StatefulWidget {
@@ -225,20 +230,17 @@ class _RecipeDetailsPageState extends State<RecipeDetailsPage> {
     if (_isLikeLoading) return;
     setState(() { _isLikeLoading = true; });
     try {
-      if (_isLiked && _likeId != null) {
-        await _likeService.unlikeRecipe(_likeId!);
-        setState(() {
-          _isLiked = false;
-          _likeId = null;
-        });
-      } else {
-        await _likeService.likeRecipe(widget.recipeId);
-        await _checkIfLiked();
-      }
+      await context.read<LikeStateManager>().toggleLike(widget.recipeId);
     } catch (e) {
-      // Можно показать ошибку
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка при обновлении избранного: $e')),
+        );
+      }
     } finally {
-      setState(() { _isLikeLoading = false; });
+      if (mounted) {
+        setState(() { _isLikeLoading = false; });
+      }
     }
   }
 
@@ -430,15 +432,21 @@ class _RecipeDetailsPageState extends State<RecipeDetailsPage> {
                                 ? const SizedBox(width: 32, height: 32, child: CircularProgressIndicator(strokeWidth: 2))
                                 : IconButton(
                                     icon: Icon(
-                                      _isLiked ? Icons.favorite : Icons.favorite_border,
-                                      color: _isLiked ? Colors.red : Colors.grey,
+                                      context.watch<LikeStateManager>().isLiked(widget.recipeId) 
+                                        ? Icons.favorite 
+                                        : Icons.favorite_border,
+                                      color: context.watch<LikeStateManager>().isLiked(widget.recipeId) 
+                                        ? Colors.red 
+                                        : Colors.grey,
                                       size: 32,
                                     ),
                                     onPressed: _toggleLike,
-                                    tooltip: _isLiked ? 'Убрать из избранного' : 'В избранное',
+                                    tooltip: context.watch<LikeStateManager>().isLiked(widget.recipeId) 
+                                      ? 'Убрать из избранного' 
+                                      : 'В избранное',
                                   ),
                               const SizedBox(width: 8),
-                              if (_isLiked)
+                              if (context.watch<LikeStateManager>().isLiked(widget.recipeId))
                                 const Text('Рецепт в избранном', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
                             ],
                           ),

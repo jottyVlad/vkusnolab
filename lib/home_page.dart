@@ -506,7 +506,10 @@ class _HomePageState extends State<HomePage> {
             ),
             itemCount: _recipes.length,
             itemBuilder: (context, index) {
-              return RecipeCard(recipe: _recipes[index]);
+              return RecipeCard(
+                recipe: _recipes[index],
+                onLikeStateChanged: () => _fetchRecipes(page: 1, searchQuery: _currentSearchQuery),
+              );
             },
           ),
         ),
@@ -570,16 +573,21 @@ class _HomePageState extends State<HomePage> {
 
 class RecipeCard extends StatelessWidget {
   final Recipe recipe;
+  final VoidCallback? onLikeStateChanged;
 
-  const RecipeCard({Key? key, required this.recipe}) : super(key: key);
+  const RecipeCard({
+    Key? key, 
+    required this.recipe,
+    this.onLikeStateChanged,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     final bool hasImage = recipe.image != null && recipe.image!.isNotEmpty;
 
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
+      onTap: () async {
+        final result = await Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => RecipeDetailsPage(
@@ -589,6 +597,9 @@ class RecipeCard extends StatelessWidget {
             ),
           ),
         );
+        if (result == true && onLikeStateChanged != null) {
+          onLikeStateChanged!();
+        }
       },
       child: Container(
         decoration: BoxDecoration(

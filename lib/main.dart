@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:vkusnolab/services/auth_service.dart';
 import 'package:vkusnolab/home_page.dart';
-import 'welcome_page.dart';   
+import 'welcome_page.dart';
+import 'package:provider/provider.dart';
+import 'services/like_state_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,7 +20,12 @@ void main() async {
     print("Error checking token on startup: $e");
   }
 
-  runApp(MyApp(isLoggedIn: isLoggedIn));
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => LikeStateManager(),
+      child: MyApp(isLoggedIn: isLoggedIn),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
