@@ -5,7 +5,6 @@ import 'assistant_page.dart';
 import 'profile_page.dart';
 import 'services/product_list_service.dart'; 
 
-
 class ProductListScreen extends StatefulWidget {
   const ProductListScreen({super.key});
 
@@ -16,6 +15,13 @@ class ProductListScreen extends StatefulWidget {
 class _ProductListScreenState extends State<ProductListScreen> {
   final ProductListService _productListService = ProductListService();
   final TextEditingController _textController = TextEditingController();
+  int? _editingId;
+
+  @override
+  void initState() {
+    super.initState();
+    _productListService.getCartItems();
+  }
 
   @override
   void dispose() {
@@ -23,14 +29,14 @@ class _ProductListScreenState extends State<ProductListScreen> {
     super.dispose();
   }
 
-
-  Future<void> _showProductDialog({int? index}) async {
-    final bool isEditing = index != null;
-    _textController.text = isEditing ? _productListService.productsNotifier.value[index] : '';
+  Future<void> _showProductDialog({CartItem? item}) async {
+    final bool isEditing = item != null;
+    _textController.text = isEditing ? item!.text : '';
+    _editingId = isEditing ? item.id : null;
 
     return showDialog<void>(
       context: context,
-      barrierDismissible: true, 
+      barrierDismissible: true,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(isEditing ? 'Редактировать продукт' : 'Добавить продукт'),
@@ -38,7 +44,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
             controller: _textController,
             autofocus: true,
             decoration: const InputDecoration(hintText: 'Название продукта'),
-            onSubmitted: (_) => _submitDialog(index: index), 
+            onSubmitted: (_) => _submitDialog(),
           ),
           actions: <Widget>[
             TextButton(
@@ -49,7 +55,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
             ),
             TextButton(
               child: Text(isEditing ? 'Сохранить' : 'Добавить'),
-              onPressed: () => _submitDialog(index: index),
+              onPressed: _submitDialog,
             ),
           ],
         );
@@ -57,32 +63,30 @@ class _ProductListScreenState extends State<ProductListScreen> {
     );
   }
 
-
-  void _submitDialog({int? index}) {
+  void _submitDialog() async {
     final newProduct = _textController.text.trim();
     if (newProduct.isNotEmpty) {
-      if (index != null) {
-        _productListService.editProduct(index, newProduct);
+      if (_editingId != null) {
+        await _productListService.editProduct(_editingId!, newProduct);
       } else {
-        _productListService.addProduct(newProduct);
+        await _productListService.addProduct(newProduct);
       }
     }
-    Navigator.of(context).pop(); 
-    _textController.clear(); 
+    Navigator.of(context).pop();
+    _textController.clear();
+    _editingId = null;
   }
 
-
-  void _deleteProduct(int index) {
-    _productListService.removeProduct(index);
+  void _deleteProduct(CartItem item) async {
+    await _productListService.removeProduct(item.id);
   }
 
   @override
   Widget build(BuildContext context) {
-
-    const Color primaryColor = Color(0xFFF37A3A); // Оранжевый цвет
-    const Color backgroundColor = Color(0xFFFFF8E1); // Светло-желтый фон
-    const Color itemBackgroundColor = Color(0xFFF5EAAA); // Цвет фона элемента списка
-    const Color titleColor = primaryColor; // Цвет заголовка
+    const Color primaryColor = Color(0xFFF37A3A); 
+    const Color backgroundColor = Color(0xFFFFF8E1); 
+    const Color itemBackgroundColor = Color(0xFFF5EAAA); 
+    const Color titleColor = primaryColor; 
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -96,26 +100,20 @@ class _ProductListScreenState extends State<ProductListScreen> {
           ),
         ),
         centerTitle: true,
-        backgroundColor: backgroundColor, // Фон AppBar как у основного фона
-        elevation: 0, // Убрать тень AppBar
-        automaticallyImplyLeading: false, // Убираем автоматическую кнопку "назад"
+        backgroundColor: backgroundColor, 
+        elevation: 0, 
+        automaticallyImplyLeading: false, 
       ),
       body: Padding(
-        // Отступы для всего списка
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-        // Используем ValueListenableBuilder для подписки на изменения
-        child: ValueListenableBuilder<List<String>>(
-          valueListenable: _productListService.productsNotifier,
+        child: ValueListenableBuilder<List<CartItem>>(
+          valueListenable: _productListService.cartNotifier,
           builder: (context, productList, child) {
-            // Строим ListView на основе данных из productList
             return ListView.builder(
-              // Количество элементов = количество продуктов + 1 (для строки добавления)
               itemCount: productList.length + 1,
               itemBuilder: (context, index) {
-                // Если индекс соответствует реальному продукту
                 if (index < productList.length) {
-                  final product = productList[index];
-                  // Возвращаем виджет для существующего продукта
+                  final item = productList[index];
                   return Container(
                      margin: const EdgeInsets.symmetric(vertical: 6.0),
                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
@@ -129,7 +127,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                        children: [
                          Expanded(
                            child: Text(
-                             product,
+                             item.text,
                              style: const TextStyle(
                                fontSize: 18,
                                color: Colors.black87,
@@ -142,14 +140,14 @@ class _ProductListScreenState extends State<ProductListScreen> {
                            children: [
                              IconButton(
                                icon: const Icon(Icons.edit_outlined, color: Colors.black54),
-                               onPressed: () => _showProductDialog(index: index),
+                               onPressed: () => _showProductDialog(item: item),
                                constraints: const BoxConstraints(),
                                padding: const EdgeInsets.only(left: 8.0, right: 4.0),
                                iconSize: 20,
                              ),
                              IconButton(
                                icon: const Icon(Icons.delete_outline, color: Colors.black54),
-                               onPressed: () => _deleteProduct(index),
+                               onPressed: () => _deleteProduct(item),
                                constraints: const BoxConstraints(),
                                padding: const EdgeInsets.only(left: 4.0),
                                iconSize: 20,
@@ -159,19 +157,17 @@ class _ProductListScreenState extends State<ProductListScreen> {
                        ],
                      ),
                   );
-                } 
-                // Если это последний элемент (строка для добавления)
+                }
                 else {
                   return GestureDetector(
-                    onTap: () => _showProductDialog(), // Вызываем добавление
+                    onTap: () => _showProductDialog(),
                     child: Container(
                       margin: const EdgeInsets.symmetric(vertical: 6.0),
                       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
                       decoration: BoxDecoration(
-                        // Слегка другой фон или стиль для кнопки добавления
                         color: itemBackgroundColor.withOpacity(0.7), 
                         borderRadius: BorderRadius.circular(20.0),
-                        border: Border.all(color: primaryColor.withOpacity(0.5), width: 1) // Рамка для наглядности
+                        border: Border.all(color: primaryColor.withOpacity(0.5), width: 1) 
                       ),
                       constraints: const BoxConstraints(minHeight: 48.0),
                       child: const Row(
@@ -196,51 +192,66 @@ class _ProductListScreenState extends State<ProductListScreen> {
           },
         ),
       ),
-      bottomNavigationBar: Container( // Обертка для белого фона под скруглением
-        color: backgroundColor, // Используем фон страницы, чтобы не было резкого перехода
+      bottomNavigationBar: Container( 
+        color: backgroundColor, 
         child: Container(
           decoration: BoxDecoration(
-            color: Color(0xFFE95322), // Цвет из home_page.dart
+            color: Color(0xFFE95322), 
             borderRadius: BorderRadius.only(
               topLeft: Radius.circular(30),
               topRight: Radius.circular(30),
             ),
           ),
-          padding: EdgeInsets.symmetric(vertical: 8), // Паддинг как в home_page.dart
+          padding: EdgeInsets.symmetric(vertical: 8), 
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: <Widget>[
               IconButton(
-                icon: const Icon(Icons.home_outlined, color: Colors.white), // Используем home_outlined как в дизайне
+                icon: const Icon(Icons.home_outlined, color: Colors.white), 
                 onPressed: () {
                    Navigator.of(context).pushReplacement(
-                     MaterialPageRoute(builder: (context) => HomePage()), // Переход на HomePage
+                     PageRouteBuilder(
+                       pageBuilder: (context, animation1, animation2) => HomePage(),
+                       transitionDuration: Duration.zero,
+                       reverseTransitionDuration: Duration.zero,
+                     ),
                    );
                 }),
               IconButton(
-                icon: const Icon(Icons.edit, color: Colors.white), // Используем edit как в home_page
+                icon: const Icon(Icons.edit_outlined, color: Colors.white),
                 onPressed: () {
                   Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (context) => CreateRecipePage()), // Переход на CreateRecipePage
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation1, animation2) => CreateRecipePage(),
+                      transitionDuration: Duration.zero,
+                      reverseTransitionDuration: Duration.zero,
+                    ),
                   );
                 }),
               IconButton(
-                // Текущая страница, можно сделать иконку активной или оставить без onPressed
-                icon: const Icon(Icons.shopping_cart, color: Colors.white), // Используем shopping_cart как в home_page
-                onPressed: () {}, // На этой странице, поэтому действие не требуется
+                icon: const Icon(Icons.shopping_cart, color: Colors.white), 
+                onPressed: () {}, 
               ),
               IconButton(
-                icon: const Icon(Icons.chat_bubble_outline, color: Colors.white), // Используем chat_bubble_outline как в home_page
+                icon: const Icon(Icons.chat_bubble_outline, color: Colors.white),
                  onPressed: () {
                    Navigator.of(context).pushReplacement(
-                     MaterialPageRoute(builder: (context) => AssistantPage()), // Переход на AssistantPage
+                     PageRouteBuilder(
+                       pageBuilder: (context, animation1, animation2) => AssistantPage(),
+                       transitionDuration: Duration.zero,
+                       reverseTransitionDuration: Duration.zero,
+                     ),
                    );
                  }),
               IconButton(
-                icon: const Icon(Icons.person_outline, color: Colors.white), // Используем person_outline как в home_page
+                icon: const Icon(Icons.person_outline, color: Colors.white), 
                  onPressed: () {
                    Navigator.of(context).pushReplacement(
-                     MaterialPageRoute(builder: (context) => ProfilePage()), // Переход на ProfilePage
+                     PageRouteBuilder(
+                       pageBuilder: (context, animation1, animation2) => ProfilePage(),
+                       transitionDuration: Duration.zero,
+                       reverseTransitionDuration: Duration.zero,
+                     ),
                    );
                  }),
             ],

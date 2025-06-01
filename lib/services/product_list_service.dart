@@ -1,100 +1,110 @@
-import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart'; 
+import 'package:http/http.dart' as http;
+import 'auth_service.dart';
+
+class CartItem {
+  final int id;
+  final String text;
+
+  CartItem({required this.id, required this.text});
+
+  factory CartItem.fromJson(Map<String, dynamic> json) {
+    return CartItem(
+      id: json['id'] as int,
+      text: json['text_recipe_ingredient'] as String,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'text_recipe_ingredient': text,
+  };
+}
 
 class ProductListService {
   static final ProductListService _instance = ProductListService._internal();
   factory ProductListService() => _instance;
+  ProductListService._internal();
 
-  static const String _prefsKey = 'productList';
+  final ValueNotifier<List<CartItem>> cartNotifier = ValueNotifier([]);
+  final AuthService _authService = AuthService();
+  final String _baseUrl = 'http://77.110.103.162/api/v1/recipe/cart/';
 
-  ProductListService._internal() {
-    _initializationDone = _loadProductsFromPrefs();
+  Future<Map<String, String>> _getHeaders() async {
+    final token = await _authService.getAccessToken();
+    return {
+      'Content-Type': 'application/json; charset=UTF-8',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
   }
 
-  late final Future<void> _initializationDone;
-
-  List<String> _products = [];
-
-  final ValueNotifier<List<String>> _productsNotifier = ValueNotifier([]);
-
-  ValueNotifier<List<String>> get productsNotifier {
-    return _productsNotifier;
-  }
-
-  Future<List<String>> get products async {
-    await _initializationDone; 
-    return List.unmodifiable(_products); 
-  }
-
-
-  Future<void> addProduct(String product) async {
-    await _initializationDone;
-    if (product.trim().isNotEmpty && !_products.contains(product.trim())) {
-      _products.add(product.trim());
-      await _updateAndSave();
+  Future<void> getCartItems() async {
+    final headers = await _getHeaders();
+    final response = await http.get(Uri.parse(_baseUrl), headers: headers);
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+      print('Cart response: ' + decoded.toString());
+      final List<dynamic> data = decoded is List
+          ? decoded
+          : (decoded['data'] ?? []);
+      cartNotifier.value = data.map((e) => CartItem.fromJson(e)).toList();
+    } else {
+      cartNotifier.value = [];
+      throw Exception('Не удалось загрузить корзину');
     }
   }
 
-  Future<void> addProducts(List<String> productsToAdd) async {
-    await _initializationDone;
-    bool changed = false;
-    for (var product in productsToAdd) {
-      if (product.trim().isNotEmpty && !_products.contains(product.trim())) {
-        _products.add(product.trim());
-        changed = true;
-      }
-    }
-    if (changed) {
-      await _updateAndSave();
-    }
-  }
-
-  Future<void> removeProduct(int index) async {
-    await _initializationDone;
-    if (index >= 0 && index < _products.length) {
-      _products.removeAt(index);
-      await _updateAndSave();
+  Future<void> addProduct(String text) async {
+    final headers = await _getHeaders();
+    final response = await http.post(
+      Uri.parse(_baseUrl),
+      headers: headers,
+      body: jsonEncode({'text_recipe_ingredient': text}),
+    );
+    print('Add product response: \\${response.statusCode} \\${response.body}');
+    if (response.statusCode == 201) {
+      await getCartItems();
+    } else {
+      throw Exception('Не удалось добавить продукт');
     }
   }
 
-  Future<void> editProduct(int index, String updatedProduct) async {
-    await _initializationDone;
-    if (index >= 0 && index < _products.length && updatedProduct.trim().isNotEmpty) {
-      _products[index] = updatedProduct.trim();
-      await _updateAndSave();
+  Future<void> addProducts(List<String> products) async {
+    final headers = await _getHeaders();
+    final body = jsonEncode(products.map((e) => {'text_recipe_ingredient': e}).toList());
+    final response = await http.post(
+      Uri.parse(_baseUrl),
+      headers: headers,
+      body: body,
+    );
+    if (response.statusCode == 201) {
+      await getCartItems();
+    } else {
+      throw Exception('Не удалось добавить продукты');
     }
   }
 
-
-  Future<void> _loadProductsFromPrefs() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final savedList = prefs.getStringList(_prefsKey);
-      if (savedList != null) {
-        _products = savedList;
-        _productsNotifier.value = List.from(_products);
-        print("[ProductListService] Loaded ${_products.length} products from SharedPreferences.");
-      } else {
-         print("[ProductListService] No products found in SharedPreferences.");
-         _productsNotifier.value = [];
-      }
-    } catch (e) {
-      print("Error loading products from SharedPreferences: $e");
-      _products = [];
-      _productsNotifier.value = [];
+  Future<void> removeProduct(int id) async {
+    final headers = await _getHeaders();
+    final response = await http.delete(Uri.parse('$_baseUrl$id/'), headers: headers);
+    if (response.statusCode == 204) {
+      await getCartItems();
+    } else {
+      throw Exception('Не удалось удалить продукт');
     }
   }
 
-  Future<void> _updateAndSave() async {
-    _productsNotifier.value = List.from(_products);
-
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setStringList(_prefsKey, _products);
-      print("[ProductListService] Saved ${_products.length} products to SharedPreferences.");
-    } catch (e) {
-      print("Error saving products to SharedPreferences: $e");
+  Future<void> editProduct(int id, String newText) async {
+    final headers = await _getHeaders();
+    final response = await http.patch(
+      Uri.parse('$_baseUrl$id/'),
+      headers: headers,
+      body: jsonEncode({'text_recipe_ingredient': newText}),
+    );
+    if (response.statusCode == 200) {
+      await getCartItems();
+    } else {
+      throw Exception('Не удалось обновить продукт');
     }
   }
 } 

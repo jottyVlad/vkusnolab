@@ -5,7 +5,7 @@ import 'models/comment.dart';
 import 'services/comment_service.dart'; 
 import 'services/product_list_service.dart';
 import 'package:vkusnolab/models/recipe_ingredient.dart'; 
-import 'services/recipe_service.dart'; 
+import 'services/recipe_service.dart';
 
 
 class RecipeDetailsPage extends StatefulWidget {
@@ -28,7 +28,8 @@ class _RecipeDetailsPageState extends State<RecipeDetailsPage> {
   final CommentService _commentService = CommentService();
   final ProductListService _productListService = ProductListService();
   final TextEditingController _commentController = TextEditingController();
-  final RecipeService _recipeService = RecipeService(); 
+  final RecipeService _recipeService = RecipeService();
+  final LikeService _likeService = LikeService();
 
   // State for fetched recipe details
   Recipe? _detailedRecipe;
@@ -45,6 +46,10 @@ class _RecipeDetailsPageState extends State<RecipeDetailsPage> {
   // Используем Set для хранения **форматированных строк** выбранных ингредиентов
   final Set<String> _selectedIngredients = {};
 
+  bool _isLiked = false;
+  int? _likeId;
+  bool _isLikeLoading = true;
+
   @override
   void initState() {
     super.initState();
@@ -53,6 +58,7 @@ class _RecipeDetailsPageState extends State<RecipeDetailsPage> {
     // Fetch both recipe details and comments
     _fetchRecipeDetails();
     _fetchComments();
+    _checkIfLiked();
   }
 
   @override
@@ -201,32 +207,64 @@ class _RecipeDetailsPageState extends State<RecipeDetailsPage> {
     return five;
   }
 
-  // --- Build Method ---
+  Future<void> _checkIfLiked() async {
+    setState(() { _isLikeLoading = true; });
+    try {
+      final likeId = await _likeService.getLikeIdForRecipe(widget.recipeId);
+      setState(() {
+        _isLiked = likeId != null;
+        _likeId = likeId;
+        _isLikeLoading = false;
+      });
+    } catch (e) {
+      setState(() { _isLikeLoading = false; });
+    }
+  }
+
+  Future<void> _toggleLike() async {
+    if (_isLikeLoading) return;
+    setState(() { _isLikeLoading = true; });
+    try {
+      if (_isLiked && _likeId != null) {
+        await _likeService.unlikeRecipe(_likeId!);
+        setState(() {
+          _isLiked = false;
+          _likeId = null;
+        });
+      } else {
+        await _likeService.likeRecipe(widget.recipeId);
+        await _checkIfLiked();
+      }
+    } catch (e) {
+      // Можно показать ошибку
+    } finally {
+      setState(() { _isLikeLoading = false; });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     print("[RecipeDetailsPage] Build method started. isDetailsLoading: $_isDetailsLoading, detailsError: ${_detailsError != null}");
     
-    // --- Define constants outside try-catch ---
     const Color primaryColor = Color(0xFFF37A3A);
     const Color textColor = Colors.black87;
     const Color titleColor = primaryColor;
     const Color lightBgColor = Color(0xFFFFF8E1);
 
-    // Use the fetched recipe details if available, otherwise use initial data or placeholders
     final Recipe? recipeToShow = _detailedRecipe; 
     final String displayTitle = recipeToShow?.title ?? widget.initialTitle ?? 'Загрузка...';
     final String displayDescription = recipeToShow?.description ?? '';
     final String displayInstructions = recipeToShow?.instructions ?? '';
-    final List<RecipeIngredient> recipeIngredients = recipeToShow?.ingredients ?? []; // Default to empty list
+    final List<RecipeIngredient> recipeIngredients = recipeToShow?.ingredients ?? [];
     final String? imageUrl = recipeToShow?.image ?? widget.initialImageUrl;
     final bool hasImage = imageUrl != null && imageUrl.isNotEmpty;
 
     return Scaffold(
       backgroundColor: lightBgColor, 
       body: _isDetailsLoading
-        ? const Center(child: CircularProgressIndicator()) // Show loading for the whole page initially
+        ? const Center(child: CircularProgressIndicator()) 
         : _detailsError != null
-          ? Center( // Show error if details failed to load
+          ? Center( 
               child: Padding(
                 padding: const EdgeInsets.all(20.0),
                 child: Text(
@@ -236,7 +274,7 @@ class _RecipeDetailsPageState extends State<RecipeDetailsPage> {
                  ),
               ),
             )
-          : CustomScrollView( // Show content once details are loaded
+          : CustomScrollView( 
               slivers: <Widget>[
                 SliverAppBar(
                   expandedHeight: 250.0,
@@ -384,14 +422,33 @@ class _RecipeDetailsPageState extends State<RecipeDetailsPage> {
                             displayInstructions.isNotEmpty ? displayInstructions : "Инструкции не указаны.", 
                             style: const TextStyle(color: textColor, fontSize: 16, height: 1.5)
                           ),
-                          const SizedBox(height: 30), 
-
+                          const SizedBox(height: 20),
+                          // --- Like (Favorite) ---
+                          Row(
+                            children: [
+                              _isLikeLoading
+                                ? const SizedBox(width: 32, height: 32, child: CircularProgressIndicator(strokeWidth: 2))
+                                : IconButton(
+                                    icon: Icon(
+                                      _isLiked ? Icons.favorite : Icons.favorite_border,
+                                      color: _isLiked ? Colors.red : Colors.grey,
+                                      size: 32,
+                                    ),
+                                    onPressed: _toggleLike,
+                                    tooltip: _isLiked ? 'Убрать из избранного' : 'В избранное',
+                                  ),
+                              const SizedBox(width: 8),
+                              if (_isLiked)
+                                const Text('Рецепт в избранном', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                          const SizedBox(height: 30),
                           // --- Comments Section ---
                           const Text('Комментарии', style: TextStyle(color: titleColor, fontSize: 22, fontWeight: FontWeight.bold)),
                           const SizedBox(height: 15),
                           _buildCommentInput(), 
-                          const SizedBox(height: 20),
-                          _buildCommentsSection(), // Uses its own loading/error state
+                          const SizedBox(height: 10),
+                          _buildCommentsSection(), 
                           const SizedBox(height: 20),
                         ],
                       ),
@@ -444,7 +501,6 @@ class _RecipeDetailsPageState extends State<RecipeDetailsPage> {
   }
 
   Widget _buildCommentsSection() {
-    // Use the comment-specific loading/error states
     if (_isLoadingComments) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -470,6 +526,7 @@ class _RecipeDetailsPageState extends State<RecipeDetailsPage> {
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.zero,
       itemCount: _comments.length,
       itemBuilder: (context, index) {
         final comment = _comments[index];

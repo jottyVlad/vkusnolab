@@ -5,7 +5,7 @@ import 'create_recipe_page.dart';
 import 'profile_page.dart';
 import 'product_list.dart';
 import 'services/chat_service.dart'; // Импорт сервиса и модели
-import 'auth_service.dart'; // Исправлен путь и импорт AuthException
+import 'services/auth_service.dart'; // Исправлен путь и импорт AuthException
 
 class AssistantPage extends StatefulWidget {
   @override
@@ -259,38 +259,54 @@ class _AssistantPageState extends State<AssistantPage> {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
                IconButton(
-                 icon: Icon(Icons.home, color: Colors.white),
+                 icon: Icon(Icons.home_outlined, color: Colors.white),
                  onPressed: () {
                    Navigator.of(context).pushReplacement(
-                     MaterialPageRoute(builder: (context) => HomePage()),
+                     PageRouteBuilder(
+                       pageBuilder: (context, animation1, animation2) => HomePage(),
+                       transitionDuration: Duration.zero,
+                       reverseTransitionDuration: Duration.zero,
+                     ),
                    );
                  },
                ),
                IconButton(
-                 icon: Icon(Icons.edit, color: Colors.white),
+                 icon: Icon(Icons.edit_outlined, color: Colors.white),
                  onPressed: () {
                    Navigator.of(context).pushReplacement(
-                     MaterialPageRoute(builder: (context) => CreateRecipePage()),
+                     PageRouteBuilder(
+                       pageBuilder: (context, animation1, animation2) => CreateRecipePage(),
+                       transitionDuration: Duration.zero,
+                       reverseTransitionDuration: Duration.zero,
+                     ),
                    );
                  },
                ),
                IconButton(
-                 icon: Icon(Icons.shopping_cart, color: Colors.white),
+                 icon: Icon(Icons.shopping_cart_outlined, color: Colors.white),
                  onPressed: () {
                    Navigator.of(context).pushReplacement(
-                     MaterialPageRoute(builder: (context) => ProductListScreen()),
+                     PageRouteBuilder(
+                       pageBuilder: (context, animation1, animation2) => ProductListScreen(),
+                       transitionDuration: Duration.zero,
+                       reverseTransitionDuration: Duration.zero,
+                     ),
                    );
                  },
                ),
                IconButton(
-                 icon: Icon(Icons.chat_bubble, color: Colors.white), // Иконка активной страницы
-                 onPressed: () {}, // Уже на этой странице
+                 icon: Icon(Icons.chat_bubble, color: Colors.white),
+                 onPressed: () {},
                ),
                IconButton(
                  icon: Icon(Icons.person_outline, color: Colors.white),
                  onPressed: () {
                    Navigator.of(context).pushReplacement(
-                     MaterialPageRoute(builder: (context) => ProfilePage()),
+                     PageRouteBuilder(
+                       pageBuilder: (context, animation1, animation2) => ProfilePage(),
+                       transitionDuration: Duration.zero,
+                       reverseTransitionDuration: Duration.zero,
+                     ),
                    );
                  },
                ),

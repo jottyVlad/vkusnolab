@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'package:vkusnolab/auth_service.dart'; 
+import 'package:vkusnolab/services/auth_service.dart'; 
 
 const String _chatBaseUrl = 'http://77.110.103.162/api/v1/chat'; 
 
