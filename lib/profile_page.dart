@@ -5,6 +5,9 @@ import 'assistant_page.dart';
 import 'product_list.dart';
 import 'edit_profile_page.dart';
 import 'services/recipe_service.dart';
+import 'services/auth_service.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'services/profile_service.dart';
 
 class ProfilePage extends StatefulWidget {
   ProfilePage({super.key});
@@ -15,43 +18,115 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   final RecipeService _recipeService = RecipeService();
+  final AuthService _authService = AuthService();
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+  final ProfileService _profileService = ProfileService();
   List<Recipe> _userRecipes = [];
+  List<Recipe> _favoriteRecipes = [];
   bool _isLoading = true;
   String? _error;
-
-  final String _userName = 'Имя Пользователя';
-  final String _userBio = 'Люблю готовить и пробовать что-то новое!';
+  String? _userName;
+  String _userBio = '';
+  String? _profilePictureUrl;
+  int? _userId;
+  bool _showFavorites = false;
 
   @override
   void initState() {
     super.initState();
-    _fetchRecipes();
+    _initProfile();
   }
 
-  Future<void> _fetchRecipes({bool loadMore = false}) async {
-    if (!mounted) return;
+  Future<void> _initProfile() async {
+    await _loadUserId();
+    await _loadUserProfile();
+    await _fetchRecipes();
+    await _fetchFavorites();
+  }
+
+  Future<void> _loadUserId() async {
+    int? userId = await _authService.getCurrentUserId();
     setState(() {
-      if (!loadMore) {
-        _isLoading = true;
-        _error = null;
-      }
+      _userId = userId;
     });
+  }
 
+  Future<void> _loadUserProfile() async {
     try {
-      final paginatedResult = await _recipeService.getRecipes(page: 1);
-      if (!mounted) return;
+      final profile = await _profileService.getMe();
+      setState(() {
+        _userName = profile.username.isNotEmpty ? profile.username : 'Имя пользователя';
+        _userBio = profile.bio.isNotEmpty ? profile.bio : '';
+        _profilePictureUrl = profile.profilePicture;
+      });
+    } catch (e) {
+      setState(() {
+        _userName = 'Имя пользователя';
+        _userBio = '';
+        _profilePictureUrl = null;
+      });
+    }
+  }
 
+  Future<void> _fetchRecipes() async {
+    if (_userId == null) return;
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      final paginatedResult = await _recipeService.getRecipes(page: 1, authorId: _userId);
       setState(() {
         _userRecipes = paginatedResult.recipes;
         _isLoading = false;
       });
     } catch (e) {
-      print("[ProfilePage] Error fetching recipes: $e");
-      if (!mounted) return;
       setState(() {
         _error = 'Ошибка загрузки рецептов: $e';
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _fetchFavorites() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      final likeService = LikeService();
+      final likedIds = await likeService.getLikedRecipeIds();
+      List<Recipe> likedRecipes = [];
+      for (final id in likedIds) {
+        try {
+          final recipe = await _recipeService.getRecipeById(id);
+          likedRecipes.add(recipe);
+        } catch (e) {
+          // Можно залогировать ошибку, если рецепт не найден
+        }
+      }
+      setState(() {
+        _favoriteRecipes = likedRecipes;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Ошибка загрузки избранных рецептов: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _onToggleChanged(bool showFavorites) async {
+    setState(() {
+      _showFavorites = showFavorites;
+      _isLoading = true;
+      _error = null;
+    });
+    if (showFavorites) {
+      await _fetchFavorites();
+    } else {
+      await _fetchRecipes();
     }
   }
 
@@ -72,15 +147,20 @@ class _ProfilePageState extends State<ProfilePage> {
                         CircleAvatar(
                           radius: 52,
                           backgroundColor: Colors.white,
-                          child: Icon(
-                            Icons.person,
-                            size: 52,
-                            color: Color(0xFFE95322),
-                          ),
+                          backgroundImage: _profilePictureUrl != null && _profilePictureUrl!.isNotEmpty
+                              ? NetworkImage(_profilePictureUrl!)
+                              : null,
+                          child: (_profilePictureUrl == null || _profilePictureUrl!.isEmpty)
+                              ? Icon(
+                                  Icons.person,
+                                  size: 52,
+                                  color: Color(0xFFE95322),
+                                )
+                              : null,
                         ),
                         SizedBox(height: 16),
                         Text(
-                          _userName,
+                          _userName ?? '',
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
@@ -106,15 +186,46 @@ class _ProfilePageState extends State<ProfilePage> {
                       _buildInfoSection('Обо мне', _userBio),
                       SizedBox(height: 16),
                       Center(
-                        child: Text(
-                          'Мои Рецепты',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color:Color(0xFFE95322),
-                          ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            GestureDetector(
+                              onTap: () async {
+                                if (_showFavorites) {
+                                  setState(() { _showFavorites = false; _isLoading = true; });
+                                  await _fetchRecipes();
+                                }
+                              },
+                              child: Text(
+                                'Мои рецепты',
+                                style: TextStyle(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.bold,
+                                  color: !_showFavorites ? Color(0xFFE95322) : Colors.grey,
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: 10),
+                            GestureDetector(
+                              onTap: () async {
+                                if (!_showFavorites) {
+                                  setState(() { _showFavorites = true; _isLoading = true; });
+                                  await _fetchFavorites();
+                                }
+                              },
+                              child: Text(
+                                'Избранное',
+                                style: TextStyle(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.bold,
+                                  color: _showFavorites ? Color(0xFFE95322) : Colors.grey,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
+                      SizedBox(height: 16),
                       _buildRecipesGrid(),
                     ],
                   ),
@@ -130,11 +241,14 @@ class _ProfilePageState extends State<ProfilePage> {
                   color: Color(0xFFE95322),
                   size: 30,
                 ),
-                onPressed: () {
-                  Navigator.push(
+                onPressed: () async {
+                  final updated = await Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => const EditProfilePage()),
                   );
+                  if (updated == true) {
+                    _initProfile();
+                  }
                 },
               ),
             ),
@@ -235,7 +349,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           SizedBox(height: 8),
           Text(
-            content,
+            (content.isNotEmpty ? content : 'Люблю готовить и пробовать что-то новое!'),
             style: TextStyle(
               fontSize: 16,
               color: Colors.black87,
@@ -262,7 +376,8 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
       );
     }
-    if (_userRecipes.isEmpty) {
+    final recipes = _showFavorites ? _favoriteRecipes : _userRecipes;
+    if (recipes.isEmpty) {
        return const Center(
         child: Padding(
           padding: EdgeInsets.all(20.0),
@@ -285,9 +400,9 @@ class _ProfilePageState extends State<ProfilePage> {
         mainAxisSpacing: 16,
         childAspectRatio: 0.85,
       ),
-      itemCount: _userRecipes.length,
+      itemCount: recipes.length,
       itemBuilder: (context, index) {
-        return RecipeCard(recipe: _userRecipes[index]);
+        return RecipeCard(recipe: recipes[index]);
       },
     );
   }

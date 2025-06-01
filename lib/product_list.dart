@@ -5,7 +5,6 @@ import 'assistant_page.dart';
 import 'profile_page.dart';
 import 'services/product_list_service.dart'; 
 
-
 class ProductListScreen extends StatefulWidget {
   const ProductListScreen({super.key});
 
@@ -16,6 +15,13 @@ class ProductListScreen extends StatefulWidget {
 class _ProductListScreenState extends State<ProductListScreen> {
   final ProductListService _productListService = ProductListService();
   final TextEditingController _textController = TextEditingController();
+  int? _editingId;
+
+  @override
+  void initState() {
+    super.initState();
+    _productListService.getCartItems();
+  }
 
   @override
   void dispose() {
@@ -23,14 +29,14 @@ class _ProductListScreenState extends State<ProductListScreen> {
     super.dispose();
   }
 
-
-  Future<void> _showProductDialog({int? index}) async {
-    final bool isEditing = index != null;
-    _textController.text = isEditing ? _productListService.productsNotifier.value[index] : '';
+  Future<void> _showProductDialog({CartItem? item}) async {
+    final bool isEditing = item != null;
+    _textController.text = isEditing ? item!.text : '';
+    _editingId = isEditing ? item.id : null;
 
     return showDialog<void>(
       context: context,
-      barrierDismissible: true, 
+      barrierDismissible: true,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(isEditing ? 'Редактировать продукт' : 'Добавить продукт'),
@@ -38,7 +44,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
             controller: _textController,
             autofocus: true,
             decoration: const InputDecoration(hintText: 'Название продукта'),
-            onSubmitted: (_) => _submitDialog(index: index), 
+            onSubmitted: (_) => _submitDialog(),
           ),
           actions: <Widget>[
             TextButton(
@@ -49,7 +55,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
             ),
             TextButton(
               child: Text(isEditing ? 'Сохранить' : 'Добавить'),
-              onPressed: () => _submitDialog(index: index),
+              onPressed: _submitDialog,
             ),
           ],
         );
@@ -57,28 +63,26 @@ class _ProductListScreenState extends State<ProductListScreen> {
     );
   }
 
-
-  void _submitDialog({int? index}) {
+  void _submitDialog() async {
     final newProduct = _textController.text.trim();
     if (newProduct.isNotEmpty) {
-      if (index != null) {
-        _productListService.editProduct(index, newProduct);
+      if (_editingId != null) {
+        await _productListService.editProduct(_editingId!, newProduct);
       } else {
-        _productListService.addProduct(newProduct);
+        await _productListService.addProduct(newProduct);
       }
     }
-    Navigator.of(context).pop(); 
-    _textController.clear(); 
+    Navigator.of(context).pop();
+    _textController.clear();
+    _editingId = null;
   }
 
-
-  void _deleteProduct(int index) {
-    _productListService.removeProduct(index);
+  void _deleteProduct(CartItem item) async {
+    await _productListService.removeProduct(item.id);
   }
 
   @override
   Widget build(BuildContext context) {
-
     const Color primaryColor = Color(0xFFF37A3A); 
     const Color backgroundColor = Color(0xFFFFF8E1); 
     const Color itemBackgroundColor = Color(0xFFF5EAAA); 
@@ -102,14 +106,14 @@ class _ProductListScreenState extends State<ProductListScreen> {
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-        child: ValueListenableBuilder<List<String>>(
-          valueListenable: _productListService.productsNotifier,
+        child: ValueListenableBuilder<List<CartItem>>(
+          valueListenable: _productListService.cartNotifier,
           builder: (context, productList, child) {
             return ListView.builder(
               itemCount: productList.length + 1,
               itemBuilder: (context, index) {
                 if (index < productList.length) {
-                  final product = productList[index];
+                  final item = productList[index];
                   return Container(
                      margin: const EdgeInsets.symmetric(vertical: 6.0),
                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
@@ -123,7 +127,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                        children: [
                          Expanded(
                            child: Text(
-                             product,
+                             item.text,
                              style: const TextStyle(
                                fontSize: 18,
                                color: Colors.black87,
@@ -136,14 +140,14 @@ class _ProductListScreenState extends State<ProductListScreen> {
                            children: [
                              IconButton(
                                icon: const Icon(Icons.edit_outlined, color: Colors.black54),
-                               onPressed: () => _showProductDialog(index: index),
+                               onPressed: () => _showProductDialog(item: item),
                                constraints: const BoxConstraints(),
                                padding: const EdgeInsets.only(left: 8.0, right: 4.0),
                                iconSize: 20,
                              ),
                              IconButton(
                                icon: const Icon(Icons.delete_outline, color: Colors.black54),
-                               onPressed: () => _deleteProduct(index),
+                               onPressed: () => _deleteProduct(item),
                                constraints: const BoxConstraints(),
                                padding: const EdgeInsets.only(left: 4.0),
                                iconSize: 20,
@@ -153,7 +157,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                        ],
                      ),
                   );
-                } 
+                }
                 else {
                   return GestureDetector(
                     onTap: () => _showProductDialog(),

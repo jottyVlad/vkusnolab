@@ -16,7 +16,7 @@ class CreateRecipePage extends StatefulWidget {
   _CreateRecipePageState createState() => _CreateRecipePageState();
 }
 
-// Расширяем модель для UI, чтобы хранить ID ингредиента
+
 class RecipeIngredientInput {
   int? ingredientId; 
   String name;      
@@ -193,8 +193,8 @@ class _CreateRecipePageState extends State<CreateRecipePage> {
           title: _titleController.text,
           description: _descriptionController.text,
           instructions: _recipeController.text,
-          cookingTimeMinutes: 30, // TODO: Добавить поле времени на UI?
-          servings: 4, // TODO: Добавить поле порций на UI?
+          cookingTimeMinutes: 30, // TODO
+          servings: 4, // TODO
           isActive: true, 
           isPrivate: false, 
           ingredients: ingredientsPayload,

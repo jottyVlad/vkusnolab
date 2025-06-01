@@ -38,7 +38,7 @@ class RecipeService {
   }
 
   // GET /v1/recipe/recipe/
-  Future<PaginatedRecipes> getRecipes({int page = 1, int pageSize = 10, String? searchQuery}) async {
+  Future<PaginatedRecipes> getRecipes({int page = 1, int pageSize = 10, String? searchQuery, int? authorId}) async {
     final headers = await _getHeaders();
     final queryParameters = {
         'page': page.toString(),
@@ -47,7 +47,9 @@ class RecipeService {
     if (searchQuery != null && searchQuery.isNotEmpty) {
       queryParameters['search'] = searchQuery;
     }
-
+    if (authorId != null) {
+      queryParameters['author'] = authorId.toString();
+    }
     final uri = Uri.parse('$_baseUrl/v1/recipe/recipe/').replace(queryParameters: queryParameters);
 
     print("Fetching recipes from: $uri with headers: $headers"); 
@@ -273,6 +275,74 @@ class RecipeService {
     } catch (e) {
         print('Error deleting recipe $id: $e');
         throw Exception('Error deleting recipe $id: $e');
+    }
+  }
+}
+
+class LikeService {
+  final String _baseUrl = 'http://77.110.103.162/api';
+  final AuthService _authService = AuthService();
+
+  Future<Map<String, String>> _getHeaders() async {
+    String? token = await _authService.getAccessToken();
+    final headers = {
+      'Content-Type': 'application/json; charset=UTF-8',
+    };
+    if (token != null) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+    return headers;
+  }
+
+  // Получить список лайков пользователя
+  Future<List<int>> getLikedRecipeIds() async {
+    final headers = await _getHeaders();
+    final uri = Uri.parse('$_baseUrl/v1/recipe/likes/');
+    final response = await http.get(uri, headers: headers);
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(utf8.decode(response.bodyBytes));
+      return data.map<int>((like) => like['recipe'] as int).toList();
+    } else {
+      throw Exception('Не удалось получить список лайков');
+    }
+  }
+
+  // Добавить лайк
+  Future<void> likeRecipe(int recipeId) async {
+    final headers = await _getHeaders();
+    final uri = Uri.parse('$_baseUrl/v1/recipe/likes/');
+    final body = jsonEncode({'recipe': recipeId});
+    final response = await http.post(uri, headers: headers, body: body);
+    if (response.statusCode != 201) {
+      throw Exception('Не удалось добавить в избранное');
+    }
+  }
+
+  // Удалить лайк по id лайка
+  Future<void> unlikeRecipe(int likeId) async {
+    final headers = await _getHeaders();
+    final uri = Uri.parse('$_baseUrl/v1/recipe/likes/$likeId/');
+    final response = await http.delete(uri, headers: headers);
+    if (response.statusCode != 204) {
+      throw Exception('Не удалось удалить из избранного');
+    }
+  }
+
+  // Получить id лайка по id рецепта (если нужно для удаления)
+  Future<int?> getLikeIdForRecipe(int recipeId) async {
+    final headers = await _getHeaders();
+    final uri = Uri.parse('$_baseUrl/v1/recipe/likes/');
+    final response = await http.get(uri, headers: headers);
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(utf8.decode(response.bodyBytes));
+      for (final like in data) {
+        if (like['recipe'] == recipeId) {
+          return like['id'] as int;
+        }
+      }
+      return null;
+    } else {
+      throw Exception('Не удалось получить список лайков');
     }
   }
 } 

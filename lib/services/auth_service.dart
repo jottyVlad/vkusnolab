@@ -178,4 +178,14 @@ class AuthService {
   Future<String?> getAccessToken() async {
     return await _getToken(_accessKey);
   }
+
+  Future<int?> getCurrentUserId() async {
+    final token = await getAccessToken();
+    if (token == null) return null;
+    final parts = token.split('.');
+    if (parts.length != 3) return null;
+    final payload = utf8.decode(base64Url.decode(base64Url.normalize(parts[1])));
+    final payloadMap = json.decode(payload);
+    return payloadMap['user_id'] as int?;
+  }
 } 
