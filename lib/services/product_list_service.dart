@@ -34,23 +34,37 @@ class ProductListService {
     final token = await _authService.getAccessToken();
     return {
       'Content-Type': 'application/json; charset=UTF-8',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
       if (token != null) 'Authorization': 'Bearer $token',
     };
   }
 
   Future<void> getCartItems() async {
-    final headers = await _getHeaders();
-    final response = await http.get(Uri.parse(_baseUrl), headers: headers);
-    if (response.statusCode == 200) {
-      final decoded = jsonDecode(utf8.decode(response.bodyBytes));
-      print('Cart response: ' + decoded.toString());
-      final List<dynamic> data = decoded is List
-          ? decoded
-          : (decoded['data'] ?? []);
-      cartNotifier.value = data.map((e) => CartItem.fromJson(e)).toList();
-    } else {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.get(
+        Uri.parse(_baseUrl),
+        headers: headers,
+      ).timeout(const Duration(seconds: 10));
+      
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+        print('Cart response: ' + decoded.toString());
+        final List<dynamic> data = decoded is List
+            ? decoded
+            : (decoded['data'] ?? []);
+        cartNotifier.value = data.map((e) => CartItem.fromJson(e)).toList();
+      } else {
+        print('Failed to get cart items. Status: ${response.statusCode}, Body: ${response.body}');
+        cartNotifier.value = [];
+        throw Exception('Не удалось загрузить корзину: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error getting cart items: $e');
       cartNotifier.value = [];
-      throw Exception('Не удалось загрузить корзину');
+      throw Exception('Ошибка при загрузке корзины: $e');
     }
   }
 
@@ -85,12 +99,25 @@ class ProductListService {
   }
 
   Future<void> removeProduct(int id) async {
-    final headers = await _getHeaders();
-    final response = await http.delete(Uri.parse('$_baseUrl$id/'), headers: headers);
-    if (response.statusCode == 204) {
-      await getCartItems();
-    } else {
-      throw Exception('Не удалось удалить продукт');
+    try {
+      final headers = await _getHeaders();
+      final response = await http.delete(
+        Uri.parse('$_baseUrl$id/'),
+        headers: headers,
+      ).timeout(const Duration(seconds: 10));
+      
+      if (response.statusCode == 204) {
+        // Optimistically update the local state
+        cartNotifier.value = cartNotifier.value.where((item) => item.id != id).toList();
+        // Then refresh from server to ensure consistency
+        await getCartItems();
+      } else {
+        print('Failed to remove product $id. Status: ${response.statusCode}, Body: ${response.body}');
+        throw Exception('Не удалось удалить продукт: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error removing product $id: $e');
+      throw Exception('Ошибка при удалении продукта: $e');
     }
   }
 
