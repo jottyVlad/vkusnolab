@@ -1,15 +1,14 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:vkusnolab/auth_service.dart';
-import 'package:vkusnolab/models/ingredient.dart'; // Assuming Ingredient model exists
+import 'package:vkusnolab/services/auth_service.dart';
+import 'package:vkusnolab/models/ingredient.dart'; 
 
 class IngredientService {
-  final String _baseUrl = 'http://77.110.103.162/api'; // Adjust if base URL is different
+  final String _baseUrl = 'http://77.110.103.162/api'; 
   final AuthService _authService = AuthService();
 
   Future<Map<String, String>> _getHeaders() async {
     String? token = await _authService.getAccessToken();
-    // Basic headers, adjust content type and auth scheme if needed
     var headers = {
       'Content-Type': 'application/json; charset=UTF-8',
     };
@@ -19,11 +18,10 @@ class IngredientService {
     return headers;
   }
 
-  // Placeholder: Fetch a list of base ingredients
-  // Assumes an endpoint like /v1/recipe/ingredients/
+  
   Future<List<Ingredient>> getIngredients({String? search}) async {
     final headers = await _getHeaders();
-    // Adjust the endpoint path as necessary
+    
     final uri = Uri.parse('$_baseUrl/v1/recipe/ingredients/')
         .replace(queryParameters: search != null && search.isNotEmpty ? {'search': search} : null);
 
@@ -46,5 +44,5 @@ class IngredientService {
     }
   }
 
-  // Add other methods like getIngredientById, createIngredient etc. if needed
+
 } 

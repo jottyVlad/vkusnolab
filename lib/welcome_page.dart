@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
-import 'login.dart'; // Импорт страницы входа
-import 'registration.dart'; // Импорт страницы регистрации
+import 'login.dart'; 
+import 'registration.dart'; 
 
 class WelcomePage extends StatelessWidget {
   const WelcomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Цвета из дизайна (приблизительно)
-    const Color topGradientColor = Color(0xFFF9A825); // Яркий оранжево-желтый
-    const Color bottomGradientColor = Color(0xFFFFD54F); // Более светлый желтый
-    const Color buttonBackgroundColor = Color(0xFFFDF5E6); // Очень светлый желто-бежевый
-    const Color buttonTextColor = Color.fromARGB(233, 212, 68, 49); // Красно-оранжевый для текста кнопок
-    const Color titleColor = Color.fromARGB(255, 42, 41, 41); // Темно-серый для заголовка
+  
+    const Color topGradientColor = Color(0xFFF9A825); 
+    const Color bottomGradientColor = Color(0xFFFFD54F);
+    const Color buttonBackgroundColor = Color(0xFFFDF5E6); 
+    const Color buttonTextColor = Color.fromARGB(233, 212, 68, 49); 
+    const Color titleColor = Color.fromARGB(255, 42, 41, 41); 
 
     return Scaffold(
       body: Container(
-        // Градиентный фон
+     
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -27,44 +27,41 @@ class WelcomePage extends StatelessWidget {
             ],
           ),
         ),
-        child: SafeArea( // Чтобы контент не залезал под статус-бар
+        child: SafeArea( 
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 40.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch, // Растягиваем кнопки
+              crossAxisAlignment: CrossAxisAlignment.stretch, 
               children: [
-                const Spacer(flex: 2), // Больше места сверху
+                const Spacer(flex: 2), 
 
-                // --- Логотип/Изображение (Замените на свое изображение) ---
-                // Используем иконку книги как временный плейсхолдер
-                // const Icon(
-                //   Image.asset("assets/Logo.png"), // Замените на Image.asset('assets/your_logo.png')
-                //   size: 150,
-                //   color: Colors.white70, // Белесая иконка
-                // ),
+           
                 Image.asset("assets/Logo.png"),
                 const SizedBox(height: 20),
 
                 
-                const SizedBox(height: 60), // Отступ перед кнопками
+                const SizedBox(height: 60), 
 
-                // --- Кнопка "Вход" ---
+              
                 ElevatedButton(
                   onPressed: () {
-                    // Переход на страницу входа
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => LoginPage()),
+                      PageRouteBuilder(
+                        pageBuilder: (context, animation1, animation2) => LoginPage(),
+                        transitionDuration: Duration.zero,
+                        reverseTransitionDuration: Duration.zero,
+                      ),
                     );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Color(0xFFF3E9B5),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30), // Сильно скругленные углы
+                      borderRadius: BorderRadius.circular(30), 
                     ),
-                    elevation: 5, // Небольшая тень
+                    elevation: 5, 
                   ),
                   child: const Text(
                     'Вход',
@@ -77,22 +74,24 @@ class WelcomePage extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
 
-                // --- Кнопка "Регистрация" ---
                 ElevatedButton(
                   onPressed: () {
-                    // Переход на страницу регистрации
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => RegistrationPage()),
+                      PageRouteBuilder(
+                        pageBuilder: (context, animation1, animation2) => RegistrationPage(),
+                        transitionDuration: Duration.zero,
+                        reverseTransitionDuration: Duration.zero,
+                      ),
                     );
                   },
                    style: ElevatedButton.styleFrom(
                     backgroundColor: Color(0xFFF3E9B5),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30), // Сильно скругленные углы
+                      borderRadius: BorderRadius.circular(30),
                     ),
-                     elevation: 5, // Небольшая тень
+                     elevation: 5, 
                   ),
                   child: const Text(
                     'Регистрация',
@@ -104,7 +103,7 @@ class WelcomePage extends StatelessWidget {
                   ),
                 ),
 
-                 const Spacer(flex: 3), // Больше места снизу
+                 const Spacer(flex: 3), 
               ],
             ),
           ),

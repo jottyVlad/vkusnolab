@@ -67,7 +67,7 @@ class AuthService {
       } else if (response.statusCode == 401) {
         throw AuthException('Неверный логин или пароль.');
       } else {
-        throw AuthException('Ошибка входа: ${response.statusCode}. ${response.body}');
+        throw AuthException('Ошибка входа: \${response.statusCode}. \${response.body}');
       }
     } on SocketException {
        throw AuthException('Ошибка сети. Проверьте подключение к интернету.');
@@ -95,10 +95,10 @@ class AuthService {
         print('User registration successful on server for username: $username');
         return;
       } else {
-         String errorMessage = 'Ошибка регистрации: ${response.statusCode}.';
+         String errorMessage = 'Ошибка регистрации: \${response.statusCode}.';
          try {
              final errors = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
-             errorMessage += ' ' + errors.entries.map((e) => '${e.key}: ${e.value is List ? e.value.join(', ') : e.value}').join('; ');
+             errorMessage += ' ' + errors.entries.map((e) => '\${e.key}: \${e.value is List ? e.value.join(\', \') : e.value}').join('; ');
          } catch (_) {
              errorMessage += ' ' + response.body; 
          }
@@ -137,7 +137,7 @@ class AuthService {
              return false; 
           }
         } else {
-          print('Refresh token failed: ${response.statusCode}');
+          print('Refresh token failed: \${response.statusCode}');
           await logout(); 
           return false;
         }
@@ -178,4 +178,14 @@ class AuthService {
   Future<String?> getAccessToken() async {
     return await _getToken(_accessKey);
   }
-}
+
+  Future<int?> getCurrentUserId() async {
+    final token = await getAccessToken();
+    if (token == null) return null;
+    final parts = token.split('.');
+    if (parts.length != 3) return null;
+    final payload = utf8.decode(base64Url.decode(base64Url.normalize(parts[1])));
+    final payloadMap = json.decode(payload);
+    return payloadMap['user_id'] as int?;
+  }
+} 

@@ -16,7 +16,7 @@ class CreateRecipePage extends StatefulWidget {
   _CreateRecipePageState createState() => _CreateRecipePageState();
 }
 
-// Расширяем модель для UI, чтобы хранить ID ингредиента
+
 class RecipeIngredientInput {
   int? ingredientId; 
   String name;      
@@ -193,8 +193,8 @@ class _CreateRecipePageState extends State<CreateRecipePage> {
           title: _titleController.text,
           description: _descriptionController.text,
           instructions: _recipeController.text,
-          cookingTimeMinutes: 30, // TODO: Добавить поле времени на UI?
-          servings: 4, // TODO: Добавить поле порций на UI?
+          cookingTimeMinutes: 30, // TODO
+          servings: 4, // TODO
           isActive: true, 
           isPrivate: false, 
           ingredients: ingredientsPayload,
@@ -536,10 +536,14 @@ class _CreateRecipePageState extends State<CreateRecipePage> {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               IconButton(
-                icon: Icon(Icons.home, color: Colors.white),
+                icon: Icon(Icons.home_outlined, color: Colors.white),
                 onPressed: () {
                   Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (context) => HomePage()),
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation1, animation2) => HomePage(),
+                      transitionDuration: Duration.zero,
+                      reverseTransitionDuration: Duration.zero,
+                    ),
                   );
                 },
               ),
@@ -548,10 +552,14 @@ class _CreateRecipePageState extends State<CreateRecipePage> {
                 onPressed: () {},
               ),
               IconButton(
-                icon: Icon(Icons.shopping_cart, color: Colors.white),
+                icon: Icon(Icons.shopping_cart_outlined, color: Colors.white),
                 onPressed: () {
                   Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (context) => ProductListScreen()),
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation1, animation2) => ProductListScreen(),
+                      transitionDuration: Duration.zero,
+                      reverseTransitionDuration: Duration.zero,
+                    ),
                   );
                 },
               ),
@@ -559,7 +567,11 @@ class _CreateRecipePageState extends State<CreateRecipePage> {
                 icon: Icon(Icons.chat_bubble_outline, color: Colors.white),
                 onPressed: () {
                   Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (context) => AssistantPage()),
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation1, animation2) => AssistantPage(),
+                      transitionDuration: Duration.zero,
+                      reverseTransitionDuration: Duration.zero,
+                    ),
                   );
                 },
               ),
@@ -567,7 +579,11 @@ class _CreateRecipePageState extends State<CreateRecipePage> {
                 icon: Icon(Icons.person_outline, color: Colors.white),
                 onPressed: () {
                   Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (context) => ProfilePage()),
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation1, animation2) => ProfilePage(),
+                      transitionDuration: Duration.zero,
+                      reverseTransitionDuration: Duration.zero,
+                    ),
                   );
                 },
               ),
